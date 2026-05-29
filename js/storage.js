@@ -13,7 +13,8 @@
 (function () {
   "use strict";
 
-  const LS_KEY = "webgis_pertanahan_v2";
+  const LS_KEY = "webgis_pertanahan_v3";
+
   let mode = "local"; // "backend" | "local"
 
   async function detectBackend() {

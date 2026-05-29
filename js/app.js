@@ -369,14 +369,20 @@
   });
 
   $("btn-reset").addEventListener("click", async () => {
-    if (!confirm("Muat ulang data awal? Perubahan tersimpan akan diganti.")) return;
-    window.Storage.clearLocal();
-    parcels = seedData().map((r) => ({ id: r.id, name: r.name, attributes: { ...r.attributes }, style: { ...r.style }, latlngs: r.points }));
+    if (!confirm("Muat data contoh (dummy)? Data yang ada sekarang akan diganti.")) return;
+    const seeded = seedData().map((r) => ({ id: r.id, name: r.name, attributes: { ...r.attributes }, style: { ...r.style }, latlngs: r.points }));
+    parcels = parcels.concat(seeded.filter((s) => !parcels.some((p) => p.id === s.id)));
     activeId = parcels[0]?.id || null;
     await persist();
     renderAll();
-    toast("Data awal dimuat ulang", "ok");
+    if (parcels.length) {
+      let b = parcels[0].layer.getBounds();
+      parcels.slice(1).forEach((p) => (b = b.extend(p.layer.getBounds())));
+      map.fitBounds(b, { padding: [50, 50] });
+    }
+    toast("Data contoh dimuat", "ok");
   });
+
 
   // ---------- KURSOR ----------
   map.on("mousemove", (e) => { $("mouse-coord").textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lon: ${e.latlng.lng.toFixed(6)}`; });
@@ -408,7 +414,8 @@
     badge.classList.add(mode);
 
     let raw = await window.Storage.load();
-    if (!raw || !raw.length) raw = seedData(); // pertama kali: pakai data contoh
+    if (!raw) raw = []; // mulai KOSONG; data contoh hanya lewat tombol "Muat Data Contoh"
+
     const ids = raw.map((r) => parseInt(String(r.id).replace(/\D/g, ""), 10)).filter((n) => !isNaN(n));
     seq = (ids.length ? Math.max(...ids) : 0) + 1;
     parcels = raw.map((r) => ({
