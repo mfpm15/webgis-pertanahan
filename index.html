@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Web GIS Pertanahan — peta bidang tanah: ukur luas & keliling, tagging GPS lapangan, simpan data lokal, ekspor GeoJSON." />
+  <meta name="theme-color" content="#e8590c" />
+  <meta name="color-scheme" content="dark light" />
+  <title>Web GIS Pertanahan</title>
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗺️%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ====================== SIDEBAR ====================== -->
+    <aside id="sidebar" aria-label="Panel kontrol">
+      <header class="sidebar-header">
+        <h1>🗺️ Web GIS Pertanahan</h1>
+        <p class="subtitle">Sistem Informasi Bidang Tanah</p>
+        <span id="storage-badge" class="storage-badge" title="Mode penyimpanan">…</span>
+      </header>
+
+      <!-- Ringkasan -->
+      <section class="panel summary-panel" aria-label="Ringkasan">
+        <div class="summary">
+          <div class="sum-card"><div class="sum-val" id="sum-count">0</div><div class="sum-lbl">Bidang</div></div>
+          <div class="sum-card"><div class="sum-val" id="sum-area">0</div><div class="sum-lbl">Total m²</div></div>
+          <div class="sum-card"><div class="sum-val" id="sum-ha">0</div><div class="sum-lbl">Total ha</div></div>
+        </div>
+      </section>
+
+      <!-- GPS Lapangan -->
+      <section class="panel" aria-label="GPS lapangan">
+        <h2>📍 GPS Lapangan</h2>
+        <div class="actions">
+          <button id="btn-locate" class="btn btn-secondary" type="button">🎯 Lokasi Saya</button>
+          <button id="btn-tag-start" class="btn" type="button">🚶 Mulai Tagging Lapangan</button>
+        </div>
+        <div id="tag-panel" class="tag-panel hidden">
+          <p class="tag-info">Titik direkam: <b id="tag-count">0</b><br>Berjalanlah ke tiap sudut tanah, lalu tekan "Rekam Titik".</p>
+          <button id="btn-tag-add" class="btn" type="button">➕ Rekam Titik di Sini</button>
+          <div class="tag-row">
+            <button id="btn-tag-finish" class="btn btn-secondary" type="button">✅ Selesai</button>
+            <button id="btn-tag-cancel" class="btn btn-danger" type="button">✖ Batal</button>
+          </div>
+        </div>
+        <p class="hint">Tagging GPS paling akurat di luar ruangan dengan sinyal terbuka.</p>
+      </section>
+
+      <!-- Daftar bidang -->
+      <section class="panel" aria-label="Daftar bidang">
+        <div class="panel-head">
+          <h2>Daftar Bidang</h2>
+          <span id="parcel-count" class="badge">0</span>
+        </div>
+        <label class="sr-only" for="search">Cari bidang</label>
+        <input id="search" class="search-input" type="search" placeholder="🔎 Cari nama / pemilik / sertifikat…" />
+        <div id="parcel-list" class="parcel-list"></div>
+        <p class="hint">Atau gunakan alat gambar (kiri atas peta) untuk menambah bidang.</p>
+      </section>
+
+      <!-- Detail bidang -->
+      <section class="panel" aria-label="Informasi bidang">
+        <div class="panel-head"><h2>Informasi Bidang</h2></div>
+        <div id="parcel-info" class="parcel-info">
+          <p class="muted">Pilih bidang pada daftar atau klik poligon di peta.</p>
+        </div>
+      </section>
+
+      <!-- Aksi data -->
+      <section class="panel" aria-label="Data">
+        <h2>Data</h2>
+        <div class="actions">
+          <button id="btn-export" class="btn btn-secondary" type="button">⬇️ Export GeoJSON</button>
+          <label class="btn btn-secondary file-label">
+            ⬆️ Import GeoJSON
+            <input id="file-import" type="file" accept=".geojson,.json,application/json" hidden />
+          </label>
+          <button id="btn-reset" class="btn btn-danger" type="button">♻️ Muat Ulang Data Awal</button>
+        </div>
+      </section>
+
+      <footer class="sidebar-footer">
+        <span id="mouse-coord">Lat: —, Lon: —</span>
+        <span id="save-status" class="save-status">Siap</span>
+      </footer>
+    </aside>
+
+    <!-- ====================== PETA ====================== -->
+    <main id="map-container">
+      <div id="map" aria-label="Peta bidang tanah"></div>
+    </main>
+  </div>
+
+  <!-- ====================== MODAL FORM ATRIBUT ====================== -->
+  <div id="modal-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h3 id="modal-title">Informasi Bidang Tanah</h3>
+      <form id="attr-form" class="attr-form">
+        <div class="form-grid">
+          <label>Nama Bidang<input name="name" required /></label>
+          <label>Pemilik<input name="pemilik" /></label>
+          <label>No. Sertifikat<input name="noSertifikat" /></label>
+          <label>NIB<input name="nib" /></label>
+          <label>Jenis Hak
+            <select name="jenisHak">
+              <option value="-">-</option>
+              <option>Hak Milik (SHM)</option>
+              <option>Hak Guna Bangunan (HGB)</option>
+              <option>Hak Guna Usaha (HGU)</option>
+              <option>Hak Pakai</option>
+              <option>Girik/Adat</option>
+            </select>
+          </label>
+          <label>Status
+            <select name="status">
+              <option>Aktif</option>
+              <option>Belum diverifikasi</option>
+              <option>Sengketa</option>
+              <option>Dijual</option>
+            </select>
+          </label>
+          <label>Penggunaan<input name="penggunaan" placeholder="Perkebunan / Pemukiman" /></label>
+          <label>Desa/Kelurahan<input name="desa" /></label>
+          <label>Kecamatan<input name="kecamatan" /></label>
+          <label>Kabupaten<input name="kabupaten" /></label>
+          <label>Provinsi<input name="provinsi" /></label>
+        </div>
+        <label class="full">Keterangan<textarea name="keterangan" rows="2"></textarea></label>
+        <div class="color-row">
+          <span class="color-label">Warna bidang:</span>
+          <div id="color-swatches" class="color-swatches"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="modal-cancel" class="btn btn-secondary">Batal</button>
+          <button type="submit" class="btn">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <!-- Libraries -->
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script defer src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+  <!-- App -->
+  <script defer src="js/geo.js"></script>
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/data.js"></script>
+  <script defer src="js/app.js"></script>
+  <script defer src="js/gps.js"></script>
+</body>
+</html>

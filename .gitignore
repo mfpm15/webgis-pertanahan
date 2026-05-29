@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Data runtime backend (jangan commit data lokal pengguna)
+data/parcels.json
+data/*.tmp
+
+# File sementara
+_*.txt
+_payload.json
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

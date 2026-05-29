@@ -1,0 +1,27 @@
+# Konfigurasi deploy Netlify (situs statis)
+# Aplikasi ini murni frontend di Netlify — backend Node tidak ikut.
+# Karena itu data otomatis tersimpan di browser tiap pengunjung (localStorage),
+# jadi setiap orang punya datanya sendiri di perangkatnya.
+
+[build]
+  publish = "."
+  command = ""
+
+# Header keamanan + caching (membantu skor Lighthouse Best Practices/SEO)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self)"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
