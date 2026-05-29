@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="WebGIS Pertanahan">
+  <rect width="512" height="512" rx="96" fill="#1f2937"/>
+  <rect x="56" y="56" width="400" height="400" rx="64" fill="#e8590c"/>
+  <!-- bidang tanah (poligon) -->
+  <polygon points="150,330 200,150 360,180 330,360" fill="#ffe066" stroke="#ffffff" stroke-width="12" stroke-linejoin="round"/>
+  <!-- titik sudut -->
+  <circle cx="150" cy="330" r="20" fill="#ffffff"/>
+  <circle cx="200" cy="150" r="20" fill="#ffffff"/>
+  <circle cx="360" cy="180" r="20" fill="#ffffff"/>
+  <circle cx="330" cy="360" r="20" fill="#ffffff"/>
+  <!-- pin lokasi -->
+  <path d="M256 250c-26 0-47 21-47 47 0 35 47 78 47 78s47-43 47-78c0-26-21-47-47-47z" fill="#c2255c" stroke="#ffffff" stroke-width="8"/>
+  <circle cx="256" cy="297" r="16" fill="#ffffff"/>
+</svg>

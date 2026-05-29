@@ -132,6 +132,24 @@ html, body { height: 100%; font-family: "Segoe UI", Roboto, system-ui, sans-seri
 .toast.ok { border-color: #2b8a3e; }
 .toast.err { border-color: #b02a37; }
 
+/* HEADER TOOLS (chip bantuan / pasang app) */
+.header-tools { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.chip {
+  background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35);
+  border-radius: 999px; padding: 5px 12px; font-size: 0.74rem; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: background 0.15s;
+}
+.chip:hover { background: rgba(255,255,255,0.30); }
+.chip.hidden { display: none; }
+
+/* MODAL BANTUAN */
+.help-body { font-size: 0.86rem; line-height: 1.55; }
+.help-body h4 { color: var(--accent); margin: 12px 0 4px; font-size: 0.86rem; }
+.help-body p { margin: 4px 0; }
+.help-body ul { margin: 4px 0 4px 18px; }
+.help-body li { margin: 3px 0; }
+
+
 /* AKSESIBILITAS */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 .btn:focus-visible, .search-input:focus-visible, .swatch:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
