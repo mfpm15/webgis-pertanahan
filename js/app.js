@@ -88,7 +88,8 @@
     maxZoom: 22, maxNativeZoom: 19, attribution: "© OpenStreetMap",
   });
 
-  const map = L.map("map", { center: [3.1516, 99.3754], zoom: 18, layers: [gHybrid] });
+  const map = L.map("map", { center: [-6.2007, 106.8172], zoom: 17, layers: [gHybrid] });
+
   L.control.layers({
     "Google Hybrid (satelit + label)": gHybrid, "Google Satelit": gSat,
     "Esri Satelit": esri, "Peta Jalan (OSM)": osm,
