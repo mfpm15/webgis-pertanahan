@@ -13,6 +13,12 @@ _served.html
 _orig_index.html
 _research/
 
+# Google Drive config (credential, jangan commit)
+js/gdrive-config.js
+client_secret_*.json
+=======REPLACE
+=======REPLACE
+
 # OS / editor
 .DS_Store
 Thumbs.db

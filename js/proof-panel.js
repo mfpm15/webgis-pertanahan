@@ -76,6 +76,10 @@
       ? (p.proof.ots.status === "confirmed" ? "Terkonfirmasi" : "Menunggu Bitcoin")
       : "Belum dikunci";
 
+    // Foto per titik (pointPhotos) — siapkan data untuk share
+    const pointPhotos = (p.pointPhotos && p.pointPhotos.filter(function (ph) { return ph && ph.dataUrl; })) || [];
+    const hasPointPhotos = pointPhotos.length > 0;
+
     el.innerHTML =
       '<div class="proof-grid">' +
         '<div class="proof-item"><div class="pi-label">Sidik Jari</div><div class="pi-val">' + esc(shortHash(fp.hash)) + '</div></div>' +
@@ -88,6 +92,7 @@
         '<button class="btn btn-sm" id="pp-stamp">\ud83d\udd17 Kunci Bukti</button>' +
         '<button class="btn btn-sm btn-secondary" id="pp-verify">\u2705 Verifikasi</button>' +
         '<button class="btn btn-sm btn-secondary" id="pp-pdf">\ud83d\udcc4 Kartu PDF</button>' +
+        (hasPointPhotos ? '<button class="btn btn-sm btn-secondary" id="pp-share-points">\ud83d\udce4 Share Foto Titik ke Drive</button>' : '') +
       '</div>' +
       '<div id="pp-status" class="pp-status"></div>' +
       '<p class="hint">Bukti ini membuktikan keutuhan & waktu, bukan kepemilikan. Acuan resmi tetap BPN.</p>';
@@ -96,6 +101,9 @@
     on("pp-stamp", "click", function () { stampProof(p); });
     on("pp-verify", "click", function () { verifyProof(p); });
     on("pp-pdf", "click", function () { makeProofCard(p); });
+    if (hasPointPhotos) {
+      on("pp-share-points", "click", function () { sharePointPhotos(p); });
+    }
   }
 
   // ---------- Aksi ----------
@@ -135,6 +143,27 @@
     window.Report.proofCardPdf(Object.assign({}, p, { metrics: metrics, points: coords }), function (err) {
       if (err) { toast(err, "err"); } else { toast("Kartu bukti PDF dibuat", "ok"); }
     });
+  }
+
+  // ---------- Share foto titik ke Drive (Web Share API) ----------
+  async function sharePointPhotos(p) {
+    if (!window.PhotoCapture || !window.PhotoCapture.shareFile) {
+      toast("Modul share belum siap", "err");
+      return;
+    }
+    const photos = (p.pointPhotos || []).filter(function (ph) { return ph && ph.dataUrl; });
+    if (!photos.length) { toast("Tidak ada foto untuk dibagikan", "err"); return; }
+    const st = $("pp-status");
+    if (st) st.textContent = "Membuka share sheet...";
+    let okCount = 0;
+    for (var i = 0; i < photos.length; i++) {
+      var ph = photos[i];
+      var fname = "foto-titik-" + (i + 1) + "-" + (p.id || "bidang") + ".jpg";
+      var ok = await window.PhotoCapture.shareFile(ph.dataUrl, fname);
+      if (ok) okCount++;
+    }
+    if (st) st.textContent = okCount + " dari " + photos.length + " foto dibuka di share sheet (pilih Drive di HP).";
+    toast("Selesai: " + okCount + " foto", okCount ? "ok" : "err");
   }
 
   // ---------- Backup global ----------

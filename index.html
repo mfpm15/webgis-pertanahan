@@ -111,6 +111,20 @@
         </div>
       </section>
 
+      <!-- Google Drive Sync -->
+      <section class="panel" aria-label="Google Drive Sync" id="gdrive-panel-wrap">
+        <h2>☁️ Google Drive</h2>
+        <div id="gdrive-panel">
+          <div class="gdrive-status" id="gdrive-status">Memuat status...</div>
+          <div class="proof-actions">
+            <button id="gdrive-signin" class="btn btn-sm" type="button">🔐 Masuk ke Drive</button>
+            <button id="gdrive-signout" class="btn btn-sm btn-secondary hidden" type="button">🚪 Keluar</button>
+            <button id="gdrive-sync-all" class="btn btn-sm btn-secondary hidden" type="button">🔄 Sinkronkan Semua Bidang</button>
+          </div>
+          <p class="hint">Folder: <b>WebGIS Pertanahan / GB-XXX /</b> (data.json + foto titik + lampiran + foto kunjungan)</p>
+        </div>
+      </section>
+
       <footer class="sidebar-footer">
         <span id="mouse-coord">Lat: —, Lon: —</span>
         <span id="save-status" class="save-status">Siap</span>
@@ -223,10 +237,12 @@
   <script defer src="js/field.js"></script>
   <script defer src="js/report.js"></script>
   <script defer src="js/photo.js"></script>
+  <script defer src="js/gdrive-config.js"></script>
   <script defer src="js/app.js"></script>
   <script defer src="js/gps.js"></script>
   <script defer src="js/proof-panel.js"></script>
   <script defer src="js/visit-panel.js"></script>
+  <script defer src="js/gdrive.js"></script>
   <script defer src="js/ui.js"></script>
 </body>
 

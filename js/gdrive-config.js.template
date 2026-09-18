@@ -1,0 +1,28 @@
+/* =============================================================
+ * gdrive-config.js — Konfigurasi Google Drive API (CLIENT-SIDE)
+ * -------------------------------------------------------------
+ * INSTRUKSI:
+ * 1. Rename file ini jadi: js/gdrive-config.js
+ * 2. Isi CLIENT_ID dari Google Cloud Console
+ * 3. Client Secret TIDAK dipakai di frontend (GIS implicit flow),
+ *    tapi disimpan di sini untuk referensi / keperluan backend masa depan.
+ * 4. File ini sudah di .gitignore — tidak akan ke GitHub.
+ * ============================================================= */
+window.GDriveConfig = {
+  // Client ID dari Google Cloud Console (OAuth 2.0 Web Client)
+  // Format: 123456789-abcdefghijklmnop.apps.googleusercontent.com
+  CLIENT_ID: "742688666266-ss5bvf0v34pepucpjhb1dkg0m26f6c0s.apps.googleusercontent.com",
+
+  // Client Secret (opsional di frontend, hanya untuk referensi/backup)
+  // JANGAN commit ke git. Isi jika punya, atau kosongkan "".
+  CLIENT_SECRET: "",
+
+  // Scopes yang diminta — Drive.file = hanya file/folder yg dibuat app
+  SCOPES: "https://www.googleapis.com/auth/drive.file",
+
+  // Nama folder root di Google Drive
+  ROOT_FOLDER_NAME: "WebGIS Pertanahan",
+
+  // Apakah auto-upload saat Simpan di modal atribut (true/false)
+  AUTO_UPLOAD_ON_SAVE: false,
+};
