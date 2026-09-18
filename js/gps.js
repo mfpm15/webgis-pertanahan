@@ -22,6 +22,14 @@
   let tagPoints = [];
   let tagMarkers = [];
   let tagLine = null;
+  let liveWatchId = null;
+  let liveAcc = null;
+
+  // ---- Tuning akurasi GPS (sesuaikan bila perlu) ----
+  const AVG_SAMPLES = 6;     // jumlah sampel GPS yang dirata-ratakan
+  const AVG_WINDOW_MS = 6000; // durasi pengambilan sampel (ms)
+  const MAX_ACCURACY = 25;   // sampel > 25 m dianggap sinyal lemah
+  const MIN_ACCURACY = 5;    // akurasi "aman" utk hint UI
 
   function gisReady() {
     return window.GIS && window.GIS.map;
@@ -61,6 +69,103 @@
     );
   }
 
+  // ---------------- Sampling GPS presisi ----------------
+  // Rata-rata (weighted) beberapa sampel untuk meredam noise GPS.
+  // Sampel ber-akurasi besar (> MAX_ACCURACY) diberi bobot kecil.
+  function samplePosition(onDone) {
+    if (!navigator.geolocation) {
+      onDone(null, "Perangkat tidak mendukung GPS");
+      return;
+    }
+    const samples = [];
+    const start = Date.now();
+    let watch = null;
+
+    const stop = (reason) => {
+      if (watch != null) navigator.geolocation.clearWatch(watch);
+      watch = null;
+
+      if (reason && samples.length === 0) {
+        onDone(null, reason);
+        return;
+      }
+      if (!samples.length) {
+        // fallback: sekali baca saja
+        navigator.geolocation.getCurrentPosition(
+          (pos) => onDone({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy || 0, n: 1 }),
+          (err) => onDone(null, err.message),
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+        return;
+      }
+
+      // bobot: akurasi kecil = bobot besar
+      let wLat = 0, wLon = 0, wSum = 0, accSum = 0;
+      samples.forEach((s) => {
+        const w = 1 / Math.max(s.accuracy, 1);
+        wLat += s.lat * w;
+        wLon += s.lon * w;
+        wSum += w;
+        accSum += s.accuracy;
+      });
+      const best = Math.min.apply(null, samples.map((s) => s.accuracy));
+      onDone({
+        lat: wLat / wSum,
+        lon: wLon / wSum,
+        accuracy: Math.min(Math.round(accSum / samples.length), best), // akurasi teroptimis (terbaik)
+        n: samples.length,
+      });
+    };
+
+    watch = navigator.geolocation.watchPosition(
+      (pos) => {
+        const a = pos.coords.accuracy || 0;
+        // lewati sampel sinyal buruk (jaga agar noise besar tidak mengotori rata-rata)
+        if (a && a > MAX_ACCURACY) {
+          if (Date.now() - start >= AVG_WINDOW_MS) stop();
+          return;
+        }
+        samples.push({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: a });
+        // selesai jika sampel cukup ATAU waktu habis
+        if (samples.length >= AVG_SAMPLES || Date.now() - start >= AVG_WINDOW_MS) stop();
+      },
+      (err) => stop(samples.length ? null : err.message),
+      { enableHighAccuracy: true, maximumAge: 0 }
+    );
+    // pengaman: jangan lebih dari jendela + margin
+    setTimeout(() => stop(), AVG_WINDOW_MS + 2000);
+  }
+
+  // ---------------- Indikator sinyal live ----------------
+  function startLiveSignal() {
+    stopLiveSignal();
+    const el = $("gps-signal");
+    if (!el) return;
+    el.classList.remove("hidden");
+    el.textContent = "Sinyal GPS: mencari…";
+    liveWatchId = navigator.geolocation && navigator.geolocation.watchPosition(
+      (pos) => {
+        const a = Math.round(pos.coords.accuracy || 0);
+        liveAcc = a;
+        const q = a <= MIN_ACCURACY ? "bagus" : (a <= 15 ? "cukup" : "lemah");
+        el.textContent = "Sinyal GPS ±" + a + " m (" + q + ")";
+        el.className = "gps-signal " + (a <= MIN_ACCURACY ? "good" : a <= 15 ? "mid" : "bad");
+      },
+      () => {
+        el.textContent = "Sinyal GPS: tak tersedia";
+        el.className = "gps-signal bad";
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+  }
+
+  function stopLiveSignal() {
+    if (liveWatchId != null && navigator.geolocation) navigator.geolocation.clearWatch(liveWatchId);
+    liveWatchId = null;
+    const el = $("gps-signal");
+    if (el) el.classList.add("hidden");
+  }
+
   // ---------------- Mode Tagging ----------------
   function startTagging() {
     if (!navigator.geolocation) {
@@ -71,31 +176,34 @@
     tagPoints = [];
     clearTagLayers();
     updateTagUI();
+    startLiveSignal();
     toast("Mode tagging aktif. Berjalanlah ke tiap sudut tanah.", "ok");
   }
 
   function addTagPoint() {
     if (!tagging) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        tagPoints.push([latitude, longitude]);
-        const idx = tagPoints.length;
-        const icon = L.divIcon({
-          className: "", html: `<div class="tag-dot">${idx}</div>`, iconSize: [24, 24], iconAnchor: [12, 12],
-        });
-        const mk = L.marker([latitude, longitude], { icon })
-          .addTo(window.GIS.map)
-          .bindPopup(`Titik ${idx}<br>±${accuracy.toFixed(0)} m`);
-        tagMarkers.push(mk);
-        redrawTagLine();
-        window.GIS.map.setView([latitude, longitude]);
-        updateTagUI();
-        toast(`Titik ${idx} direkam (±${accuracy.toFixed(0)} m)`, "ok");
-      },
-      (err) => toast("GPS gagal: " + err.message, "err"),
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    toast("Mengambil sampel GPS (averaging)…");
+    samplePosition(function (res, err) {
+      if (!res) { toast(err || "GPS gagal", "err"); return; }
+      // Gating: sinyal masih buruk -> jangan rekam titik
+      if (res.accuracy > MAX_ACCURACY) {
+        toast("Sinyal lemah (±" + res.accuracy + " m). Pindah ke area terbuka lalu coba lagi.", "err");
+        return;
+      }
+      tagPoints.push([res.lat, res.lon]);
+      const idx = tagPoints.length;
+      const icon = L.divIcon({
+        className: "", html: `<div class="tag-dot">${idx}</div>`, iconSize: [24, 24], iconAnchor: [12, 12],
+      });
+      const mk = L.marker([res.lat, res.lon], { icon })
+        .addTo(window.GIS.map)
+        .bindPopup(`Titik ${idx}<br>±${res.accuracy} m (${res.n} sampel)`);
+      tagMarkers.push(mk);
+      redrawTagLine();
+      window.GIS.map.setView([res.lat, res.lon]);
+      updateTagUI();
+      toast(`Titik ${idx} direkam (±${res.accuracy} m, ${res.n} sampel)`, "ok");
+    });
   }
 
   function redrawTagLine() {
@@ -126,6 +234,7 @@
   function stopTagging() {
     tagging = false;
     clearTagLayers();
+    stopLiveSignal();
     updateTagUI();
   }
 
