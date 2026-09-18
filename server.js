@@ -1,9 +1,11 @@
 /* =============================================================
- * server.js — Backend Web GIS Pertanahan (Node.js stdlib, 0 dependency)
+ * server.js — Backend Web GIS Pertanahan (Node.js + googleapis)
  * -------------------------------------------------------------
  * - Menyajikan file frontend (index.html, css, js).
  * - REST API menyimpan data bidang sebagai file JSON di disk laptop:
  *     data/parcels.json
+ * - Google Drive Sync (Service Account):
+ *     POST /api/sync-to-drive  { parcelId, parcelData, files[] }
  *
  * Endpoint:
  *   GET    /api/health          -> { ok: true }
@@ -11,6 +13,7 @@
  *   PUT    /api/parcels         -> simpan seluruh daftar (body: {parcels:[...]})
  *   POST   /api/parcels         -> tambah 1 bidang (body: parcel)
  *   DELETE /api/parcels/:id     -> hapus 1 bidang
+ *   POST   /api/sync-to-drive   -> sync 1 bidang ke Google Drive (Service Account)
  *
  * Jalankan:  node server.js   (lalu buka http://localhost:3000)
  * ============================================================= */
@@ -19,6 +22,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { google } = require("googleapis");
 
 const PORT = process.env.PORT || 3000;
 const ROOT = __dirname;
@@ -159,6 +163,120 @@ async function handleApi(req, res, urlPath) {
     const parcels = readStore().filter((p) => p.id !== id);
     writeStore(parcels);
     return sendJson(res, 200, { ok: true, count: parcels.length });
+  }
+
+  if (urlPath === "/api/sync-to-drive" && method === "POST") {
+    return handleSyncToDrive(req, res);
+  }
+
+  // ---------------- Google Drive Sync (Service Account) ----------------
+  // Konfigurasi via environment variables:
+  // GOOGLE_SERVICE_ACCOUNT_KEY  -> JSON string dari service-account.json
+  // GOOGLE_DRIVE_ROOT_FOLDER_ID -> ID folder root di Drive (contoh: 1jddk1kywV5DW69T_iqn2DM3qaT_BRORn)
+  let driveClient = null;
+  let driveRootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || "1jddk1kywV5DW69T_iqn2DM3qaT_BRORn";
+
+  function initDriveClient() {
+    if (driveClient) return true;
+    const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+    if (!keyJson) {
+      console.warn("GOOGLE_SERVICE_ACCOUNT_KEY tidak diset — Drive sync dinonaktifkan");
+      return false;
+    }
+    let credentials;
+    try {
+      credentials = JSON.parse(keyJson);
+    } catch (e) {
+      console.error("GOOGLE_SERVICE_ACCOUNT_KEY JSON tidak valid:", e.message);
+      return false;
+    }
+    const auth = new google.auth.JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: ["https://www.googleapis.com/auth/drive"],
+    });
+    driveClient = google.drive({ version: "v3", auth });
+    return true;
+  }
+
+  async function findOrCreateDriveFolder(name, parentId) {
+    if (!driveClient) throw new Error("Drive client belum init");
+    const q = `name='${name.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false and '${parentId}' in parents`;
+    const res = await driveClient.files.list({ q, fields: "files(id,name)", spaces: "drive" });
+    if (res.data.files && res.data.files.length) return res.data.files[0].id;
+    const meta = { name, mimeType: "application/vnd.google-apps.folder", parents: [parentId] };
+    const cr = await driveClient.files.create({ resource: meta, fields: "id" });
+    return cr.data.id;
+  }
+
+  async function uploadDriveFile(folderId, fileName, mimeType, base64Data) {
+    if (!driveClient) throw new Error("Drive client belum init");
+    const buffer = Buffer.from(base64Data, "base64");
+    const meta = { name: fileName, parents: [folderId] };
+    const media = { mimeType, body: require("stream").Readable.from(buffer) };
+    const res = await driveClient.files.create({ resource: meta, media, fields: "id" });
+    return res.data.id;
+  }
+
+  async function handleSyncToDrive(req, res) {
+    if (!initDriveClient()) {
+      return sendJson(res, 503, { error: "Drive sync belum dikonfigurasi (GOOGLE_SERVICE_ACCOUNT_KEY)" });
+    }
+    const body = await readBody(req);
+    const { parcelId, parcel, files } = body;
+    if (!parcelId || !parcel) {
+      return sendJson(res, 400, { error: "parcelId dan parcel wajib" });
+    }
+    try {
+      // Root folder -> parcel folder
+      const parcelFolderName = `${parcel.id} - ${(parcel.name || "Tanah").replace(/[\\/:*?"<>|]/g, "_")}`;
+      const parcelFolderId = await findOrCreateDriveFolder(parcelFolderName, driveRootFolderId);
+
+      // 1. data.json
+      const cleanParcel = {
+        id: parcel.id, name: parcel.name, attributes: parcel.attributes, style: parcel.style,
+        points: parcel.latlngs || parcel.points,
+        proof: parcel.proof || null, recordedAt: parcel.recordedAt || null,
+        evidence: (parcel.evidence || []).map(e => ({ id: e.id, category: e.category, filename: e.filename, type: e.type, size: e.size, hash: e.hash, addedAt: e.addedAt })),
+        visits: parcel.visits || [], pins: parcel.pins || [], status: parcel.status || "belum",
+        reminders: parcel.reminders || null, lastVisit: parcel.lastVisit || null,
+        pointPhotos: (parcel.pointPhotos || []).map(ph => ph ? { hash: ph.hash, at: ph.at, lat: ph.lat, lon: ph.lon } : null),
+      };
+      await uploadDriveFile(parcelFolderId, "data.json", "application/json", Buffer.from(JSON.stringify(cleanParcel, null, 2)).toString("base64"));
+
+      // 2. pointPhotos
+      const photos = (parcel.pointPhotos || []).filter(ph => ph && ph.dataUrl);
+      for (let i = 0; i < photos.length; i++) {
+        const ph = photos[i];
+        const base64 = ph.dataUrl.split(",")[1];
+        await uploadDriveFile(parcelFolderId, `foto-titik-${i + 1}.jpg`, "image/jpeg", base64);
+      }
+
+      // 3. Evidence files
+      const evidences = (parcel.evidence || []).filter(e => e.dataUrl);
+      for (const ev of evidences) {
+        const base64 = ev.dataUrl.split(",")[1];
+        const safeName = ev.filename || `evidence-${ev.id}.${(ev.type || "application/octet-stream").split("/")[1] || "bin"}`;
+        await uploadDriveFile(parcelFolderId, safeName, ev.type || "application/octet-stream", base64);
+      }
+
+      // 4. Visit photos
+      const visits = parcel.visits || [];
+      for (let vi = 0; vi < visits.length; vi++) {
+        const v = visits[vi];
+        const vPhotos = (v.photos || []).filter(ph => ph && ph.dataUrl);
+        for (let pi = 0; pi < vPhotos.length; pi++) {
+          const ph = vPhotos[pi];
+          const base64 = ph.dataUrl.split(",")[1];
+          await uploadDriveFile(parcelFolderId, `kunjungan-${vi + 1}-foto-${pi + 1}.jpg`, "image/jpeg", base64);
+        }
+      }
+
+      return sendJson(res, 200, { ok: true, folderId: parcelFolderId });
+    } catch (e) {
+      console.error("Sync to Drive error:", e);
+      return sendJson(res, 500, { error: e.message });
+    }
   }
 
   return sendJson(res, 404, { error: "Endpoint tidak ditemukan" });

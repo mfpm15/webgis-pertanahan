@@ -119,9 +119,13 @@
           <div class="proof-actions">
             <button id="gdrive-signin" class="btn btn-sm" type="button">🔐 Masuk ke Drive</button>
             <button id="gdrive-signout" class="btn btn-sm btn-secondary hidden" type="button">🚪 Keluar</button>
-            <button id="gdrive-sync-all" class="btn btn-sm btn-secondary hidden" type="button">🔄 Sinkronkan Semua Bidang</button>
+            <button id="gdrive-sync-all" class="btn btn-sm btn-secondary hidden" type="button">🔄 Sinkronkan Semua Bidang (OAuth)</button>
+          </div>
+          <div class="proof-actions" style="margin-top:8px;">
+            <button id="gdrive-sync-server" class="btn btn-sm" type="button">☁️ Sinkronkan via Server (otomatis ke Drive Anda)</button>
           </div>
           <p class="hint">Folder: <b>WebGIS Pertanahan / GB-XXX /</b> (data.json + foto titik + lampiran + foto kunjungan)</p>
+          <p class="hint" style="font-size:0.7rem;color:var(--accent);">Server Sync: tim lapangan tidak perlu login — data terkirim ke server → Drive Anda otomatis</p>
         </div>
       </section>
 

@@ -1,7 +1,7 @@
 {
   "name": "web-gis-pertanahan",
-  "version": "2.0.0",
-  "description": "Web GIS Pertanahan — peta bidang tanah dengan backend penyimpanan lokal",
+  "version": "2.1.0",
+  "description": "Web GIS Pertanahan — peta bidang tanah dengan backend penyimpanan lokal + Google Drive sync",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,5 +10,8 @@
   "engines": {
     "node": ">=14"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "googleapis": "^133.0.0"
+  }
 }

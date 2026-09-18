@@ -262,21 +262,68 @@
     const btnIn = $("#gdrive-signin");
     const btnOut = $("#gdrive-signout");
     const btnSync = $("#gdrive-sync-all");
+    const btnSyncServer = $("#gdrive-sync-server");
     const status = $("#gdrive-status");
     const signed = isSignedIn();
     if (btnIn) btnIn.classList.toggle("hidden", signed);
     if (btnOut) btnOut.classList.toggle("hidden", !signed);
     if (btnSync) btnSync.classList.toggle("hidden", !signed);
-    if (status) status.textContent = signed ? "Terhubung ke Google Drive ✓" : "Belum terhubung ke Google Drive";
+    // Tombol server sync selalu tampil (tidak butuh login)
+    if (btnSyncServer) btnSyncServer.classList.remove("hidden");
+    if (status) {
+      if (signed) {
+        status.textContent = "Terhubung ke Google Drive (Client OAuth) ✓ — atau gunakan Server Sync di bawah";
+      } else {
+        status.textContent = "Belum login OAuth. Gunakan ☁️ Sinkronkan via Server (otomatis ke Drive Anda)";
+      }
+    }
   }
 
   function bindUI() {
     const btnIn = $("#gdrive-signin");
     const btnOut = $("#gdrive-signout");
     const btnSync = $("#gdrive-sync-all");
+    const btnSyncServer = $("#gdrive-sync-server");
     if (btnIn) btnIn.addEventListener("click", signIn);
     if (btnOut) btnOut.addEventListener("click", signOut);
     if (btnSync) btnSync.addEventListener("click", syncAll);
+    if (btnSyncServer) btnSyncServer.addEventListener("click", syncAllViaServer);
+  }
+
+  async function syncAllViaServer() {
+    if (!window.GIS || !window.GIS.getParcels) { toast("GIS belum siap", "err"); return; }
+    const parcels = (window.GIS.getParcels?.() || []).filter(p => p && p.id);
+    if (!parcels.length) { toast("Tidak ada bidang untuk disinkronkan", "err"); return; }
+
+    const btn = $("#gdrive-sync-server");
+    const st = $("#gdrive-status");
+    if (btn) btn.disabled = true;
+    if (st) st.textContent = "Mengirim ke server untuk sync ke Drive...";
+
+    let ok = 0, fail = 0;
+    for (const p of parcels) {
+      if (st) st.textContent = "Sync " + p.name + " (" + p.id + ") via server...";
+      try {
+        const res = await fetch("/api/sync-to-drive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ parcelId: p.id, parcel: p, files: [] })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          ok++;
+        } else {
+          console.error("Server sync gagal " + p.id, data);
+          fail++;
+        }
+      } catch (e) {
+        console.error("Server sync error " + p.id, e);
+        fail++;
+      }
+    }
+    if (st) st.textContent = "Server sync selesai: " + ok + " berhasil, " + fail + " gagal";
+    if (btn) btn.disabled = false;
+    toast("Server sync selesai: " + ok + " bidang", fail ? "err" : "ok");
   }
 
   // Auto-init
