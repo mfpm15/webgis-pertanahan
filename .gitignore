@@ -16,8 +16,9 @@ _research/
 # Google Drive config (credential, jangan commit)
 js/gdrive-config.js
 client_secret_*.json
-=======REPLACE
-=======REPLACE
+gen-lang-client-*.json
+*service-account*.json
+*service_account*.json
 
 # OS / editor
 .DS_Store

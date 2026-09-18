@@ -1,11 +1,13 @@
-# Konfigurasi deploy Netlify (situs statis)
-# Aplikasi ini murni frontend di Netlify — backend Node tidak ikut.
-# Karena itu data otomatis tersimpan di browser tiap pengunjung (localStorage),
-# jadi setiap orang punya datanya sendiri di perangkatnya.
+# Konfigurasi deploy Netlify (situs statis + 1 serverless function)
+# Aplikasi utamanya frontend statis — backend Node (server.js) tidak
+# ikut, jadi data bidang tersimpan di browser tiap pengunjung (localStorage).
+# Satu pengecualian: netlify/functions/sync-to-drive.js — serverless
+# function untuk sinkronisasi foto/data ke Google Drive (Service Account).
 
 [build]
   publish = "."
   command = ""
+  functions = "netlify/functions"
 
 # Header keamanan + caching (membantu skor Lighthouse Best Practices/SEO)
 [[headers]]
@@ -36,4 +38,11 @@
   for = "/manifest.webmanifest"
   [headers.values]
     Content-Type = "application/manifest+json"
+
+# Frontend memanggil /api/sync-to-drive (sama seperti path di server.js lokal);
+# di Netlify, arahkan ke serverless function yang setara.
+[[redirects]]
+  from = "/api/sync-to-drive"
+  to = "/.netlify/functions/sync-to-drive"
+  status = 200
 
