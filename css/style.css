@@ -305,3 +305,30 @@ background: #16202e; color: var(--text-muted);
 /* Utilitas status tercolor (dipakai proof-panel.js) */
 .ok-text { color: #4ade80; }
 .err-text { color: #f87171; }
+
+/* =============================================================
+ * Foto per titik (modal atribut) & Riwayat Kunjungan
+ * ============================================================= */
+.pp-photo-list { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.pp-photo-row {
+  display: flex; align-items: center; gap: 8px; background: #0f172a;
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px;
+}
+.pp-photo-idx { font-weight: 700; color: var(--accent); min-width: 24px; }
+.pp-photo-thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+.pp-photo-empty { flex: 1; font-size: 0.76rem; color: var(--text-muted); }
+.pp-photo-btn { margin-left: auto; }
+.pp-photo-del { padding: 4px 8px; }
+
+.visit-panel { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.visit-form textarea {
+  width: 100%; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 8px; font-family: inherit; font-size: 0.82rem; resize: vertical;
+}
+.visit-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; background: #1e293b; }
+.visit-card-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.visit-date { font-size: 0.72rem; color: var(--text-muted); font-family: Consolas, monospace; }
+.visit-note { font-size: 0.82rem; margin-bottom: 6px; }
+.visit-meta { font-size: 0.74rem; color: var(--text-muted); margin-bottom: 4px; }
+.visit-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; margin-top: 6px; }
+.visit-photo-thumb { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; }

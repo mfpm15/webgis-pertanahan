@@ -6,7 +6,7 @@
  *   - Tile peta (Google/Esri/OSM): network-first, simpan salinan
  *     supaya area yang pernah dibuka tetap muncul saat offline.
  * ============================================================= */
-const VERSION = "v5.0.0";
+const VERSION = "v5.1.0";
 const SHELL_CACHE = "gis-shell-" + VERSION;
 const TILE_CACHE = "gis-tiles-" + VERSION;
 
@@ -23,9 +23,11 @@ const SHELL_ASSETS = [
   "./js/evidence.js",
   "./js/field.js",
   "./js/report.js",
+  "./js/photo.js",
   "./js/app.js",
   "./js/gps.js",
   "./js/proof-panel.js",
+  "./js/visit-panel.js",
   "./js/ui.js",
   "./verify.html",
   "./icons/icon.svg",

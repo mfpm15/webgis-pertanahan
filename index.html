@@ -86,6 +86,17 @@
         </div>
       </section>
 
+      <!-- Riwayat Kunjungan Lapangan (F6/F7) -->
+      <section class="panel" aria-label="Riwayat kunjungan" id="visit-panel-wrap">
+        <div class="panel-head">
+          <h2>🚶 Riwayat Kunjungan</h2>
+          <button id="btn-visit-add" class="btn btn-sm" type="button">➕ Kunjungan Baru</button>
+        </div>
+        <div id="visit-panel" class="visit-panel">
+          <p class="muted">Pilih bidang untuk melihat riwayat kunjungan.</p>
+        </div>
+      </section>
+
       <!-- Aksi data -->
       <section class="panel" aria-label="Data">
         <h2>Data</h2>
@@ -151,6 +162,10 @@
           <span class="color-label">Warna bidang:</span>
           <div id="color-swatches" class="color-swatches"></div>
         </div>
+        <div class="full">
+          <span class="color-label">📷 Foto per titik sudut (bertanggal):</span>
+          <div id="point-photos-list" class="pp-photo-list"></div>
+        </div>
         <div class="modal-actions">
           <button type="button" id="modal-cancel" class="btn btn-secondary">Batal</button>
           <button type="submit" class="btn">Simpan</button>
@@ -207,9 +222,11 @@
   <script defer src="js/evidence.js"></script>
   <script defer src="js/field.js"></script>
   <script defer src="js/report.js"></script>
+  <script defer src="js/photo.js"></script>
   <script defer src="js/app.js"></script>
   <script defer src="js/gps.js"></script>
   <script defer src="js/proof-panel.js"></script>
+  <script defer src="js/visit-panel.js"></script>
   <script defer src="js/ui.js"></script>
 </body>
 

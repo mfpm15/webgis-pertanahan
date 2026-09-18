@@ -20,6 +20,7 @@
   let meCircle = null;
   let tagging = false;
   let tagPoints = [];
+  let tagPhotos = []; // foto bertimestamp sejajar index dgn tagPoints
   let tagMarkers = [];
   let tagLine = null;
   let liveWatchId = null;
@@ -174,6 +175,7 @@
     }
     tagging = true;
     tagPoints = [];
+    tagPhotos = [];
     clearTagLayers();
     updateTagUI();
     startLiveSignal();
@@ -190,19 +192,32 @@
         toast("Sinyal lemah (±" + res.accuracy + " m). Pindah ke area terbuka lalu coba lagi.", "err");
         return;
       }
-      tagPoints.push([res.lat, res.lon]);
+      const coords = [res.lat, res.lon];
+      tagPoints.push(coords);
+      tagPhotos.push(null);
       const idx = tagPoints.length;
       const icon = L.divIcon({
         className: "", html: `<div class="tag-dot">${idx}</div>`, iconSize: [24, 24], iconAnchor: [12, 12],
       });
-      const mk = L.marker([res.lat, res.lon], { icon })
+      const mk = L.marker(coords, { icon })
         .addTo(window.GIS.map)
         .bindPopup(`Titik ${idx}<br>±${res.accuracy} m (${res.n} sampel)`);
       tagMarkers.push(mk);
       redrawTagLine();
-      window.GIS.map.setView([res.lat, res.lon]);
+      window.GIS.map.setView(coords);
       updateTagUI();
       toast(`Titik ${idx} direkam (±${res.accuracy} m, ${res.n} sampel)`, "ok");
+
+      // Foto bertimestamp untuk titik ini (sesuai permintaan: tiap titik, bukan cuma yang pertama).
+      if (window.PhotoCapture) {
+        const myIdx = idx - 1;
+        window.PhotoCapture.captureTimestamped(coords, function (photo) {
+          if (!photo) return; // pengguna membatalkan pilih foto — titik tetap tersimpan tanpa foto
+          tagPhotos[myIdx] = photo;
+          mk.bindPopup(`Titik ${idx}<br>±${res.accuracy} m (${res.n} sampel)<br>📷 Foto terlampir`);
+          toast("Foto titik " + idx + " tersimpan", "ok");
+        });
+      }
     });
   }
 
@@ -219,9 +234,10 @@
       return;
     }
     const pts = tagPoints.slice();
+    const photos = tagPhotos.slice();
     stopTagging();
     if (window.GIS.addParcelFromLatlngs) {
-      window.GIS.addParcelFromLatlngs(pts, { fromGPS: true });
+      window.GIS.addParcelFromLatlngs(pts, photos);
       toast("Bidang dari GPS dibuat — lengkapi infonya", "ok");
     }
   }
@@ -243,6 +259,7 @@
     if (!map) return;
     tagMarkers.forEach((m) => map.removeLayer(m));
     tagMarkers = [];
+    tagPhotos = [];
     if (tagLine) {
       map.removeLayer(tagLine);
       tagLine = null;

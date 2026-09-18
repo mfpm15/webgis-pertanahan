@@ -50,13 +50,24 @@
     const data = await res.json();
     const a = data.address || {};
 
-    // Pemetaan heuristic address Nominatim -> istilah pertanahan Indonesia.
-    // Nominatim menyimpan nama admin di berbagai key; ambil yang paling umum.
+    // Pemetaan heuristik struktur admin OSM Indonesia.
+    // OSM tidak konsisten antar wilayah (mis. DKI: provinsi ada di key "city",
+    // kecamatan bisa di "district" atau "suburb"), jadi pakai urutan prioritas.
+    const prov = a.state || a.city || a.region || "";
+    const kab =
+      a.county ||
+      ((/^(kota|kab)/i.test(a.city || "")) && a.city !== prov ? a.city : "") ||
+      a.city_district ||
+      (a.city && a.city !== prov ? a.city : "") ||
+      "";
+    const kec = a.district || (a.village ? a.suburb : "") || a.suburb || "";
+    const desa = a.village || (a.district ? a.suburb : "") || a.hamlet || a.suburb || "";
+
     const address = {
-      desa: a.village || a.suburb || a.hamlet || a.residential || a.neighbourhood || a.quarter || a.state_district || "",
-      kecamatan: a.district || a.county || a.subdistrict || "",
-      kabupaten: a.city || a.town || a.county || a.province || a.city_district || "",
-      provinsi: a.state || a.region || "",
+      desa: desa,
+      kecamatan: kec,
+      kabupaten: kab,
+      provinsi: prov,
       negara: a.country || "",
       displayName: data.display_name || "",
     };

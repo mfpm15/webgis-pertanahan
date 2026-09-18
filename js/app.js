@@ -68,7 +68,19 @@
   async function persist() {
     setStatus("Menyimpan…", true);
     const ok = await window.Storage.saveAll(
-      parcels.map((p) => ({ id: p.id, name: p.name, attributes: p.attributes, style: p.style, points: p.latlngs }))
+      parcels.map((p) => ({
+        id: p.id, name: p.name, attributes: p.attributes, style: p.style, points: p.latlngs,
+        // Jejak digital & lapangan (F1-F8) — wajib ikut tersimpan, jangan hilang saat reload.
+        proof: p.proof || null,
+        recordedAt: p.recordedAt || null,
+        evidence: p.evidence || [],
+        visits: p.visits || [],
+        pins: p.pins || [],
+        status: p.status || "belum",
+        reminders: p.reminders || null,
+        lastVisit: p.lastVisit || null,
+        pointPhotos: p.pointPhotos || [],
+      }))
     );
     setStatus(window.Storage.mode === "backend" ? "Tersimpan ke file ✓" : "Tersimpan di browser ✓");
     return ok;
@@ -251,18 +263,69 @@
     });
   }
 
-  function openModal(id) {
+  // Bidang yang baru dibuat & belum disimpan (draw / GPS). Batal harus
+  // membuang bidang ini sepenuhnya, bukan cuma menutup modal (bug lama).
+  let pendingNewId = null;
+
+  function renderPointPhotos(p) {
+    const wrap = $("point-photos-list");
+    if (!wrap) return;
+    if (!Array.isArray(p.pointPhotos) || p.pointPhotos.length !== p.latlngs.length) {
+      const old = p.pointPhotos || [];
+      p.pointPhotos = p.latlngs.map((_, i) => old[i] || null);
+    }
+    wrap.innerHTML = "";
+    p.latlngs.forEach((c, i) => {
+      const row = document.createElement("div");
+      row.className = "pp-photo-row";
+      const ph = p.pointPhotos[i];
+      row.innerHTML =
+        `<span class="pp-photo-idx">#${i + 1}</span>` +
+        (ph ? `<img class="pp-photo-thumb" src="${ph.dataUrl}" alt="Foto titik ${i + 1}" />` : `<span class="pp-photo-empty">Belum ada foto</span>`) +
+        `<button type="button" class="btn btn-secondary pp-photo-btn">${ph ? "📷 Ganti" : "📷 Ambil"}</button>` +
+        (ph ? `<button type="button" class="btn btn-danger pp-photo-del">✖</button>` : "");
+      row.querySelector(".pp-photo-btn").addEventListener("click", () => {
+        if (!window.PhotoCapture) { toast("Modul kamera belum siap", "err"); return; }
+        window.PhotoCapture.captureTimestamped(c, (result) => {
+          if (!result) return;
+          p.pointPhotos[i] = result;
+          renderPointPhotos(p);
+        });
+      });
+      const delBtn = row.querySelector(".pp-photo-del");
+      if (delBtn) delBtn.addEventListener("click", () => { p.pointPhotos[i] = null; renderPointPhotos(p); });
+      wrap.appendChild(row);
+    });
+  }
+
+  function openModal(id, opts) {
     editingId = id;
+    pendingNewId = (opts && opts.isNew) ? id : null;
     const p = parcels.find((x) => x.id === id);
     if (!p) return;
     pickedColor = null;
     form.name.value = p.name || "";
     ATTR_KEYS.forEach((k) => { if (form[k]) form[k].value = p.attributes?.[k] || ""; });
     renderSwatches(p.style?.color);
+    renderPointPhotos(p);
     $("modal-backdrop").classList.remove("hidden");
   }
 
-  function closeModal() { editingId = null; $("modal-backdrop").classList.add("hidden"); }
+  /** Batal: bila bidang ini baru dibuat & belum disimpan, buang sepenuhnya. */
+  function discardIfPendingNew() {
+    if (!pendingNewId) return;
+    const id = pendingNewId;
+    parcels = parcels.filter((x) => x.id !== id);
+    if (activeId === id) activeId = parcels[0]?.id || null;
+    pendingNewId = null;
+    renderAll();
+  }
+
+  function closeModal() {
+    discardIfPendingNew();
+    editingId = null;
+    $("modal-backdrop").classList.add("hidden");
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -275,12 +338,14 @@
         p.layer.setStyle({ color: pickedColor.color, fillColor: pickedColor.fill });
       }
       bindPopup(p);
+      pendingNewId = null; // tersimpan — jangan dibuang lagi bila modal dibuka ulang
       await persist();
       renderSummary(); renderList(); renderInfo(p);
       toast("Info bidang tersimpan", "ok");
 
     }
-    closeModal();
+    editingId = null;
+    $("modal-backdrop").classList.add("hidden");
   });
   $("modal-cancel").addEventListener("click", closeModal);
   $("modal-backdrop").addEventListener("click", (e) => { if (e.target === $("modal-backdrop")) closeModal(); });
@@ -292,14 +357,16 @@
       attributes: ATTR_KEYS.reduce((o, k) => ((o[k] = ""), o), {}),
       style: { color: "#e8590c", fillColor: "#ffa94d", fillOpacity: 0.35 },
       latlngs: llFromLayer(e.layer),
+      pointPhotos: [],
     };
     parcels.push(p);
     activeId = p.id;
     // Auto-isi desa/kecamatan/kabupaten/provinsi dari koordinat (Nominatim)
     await fillAddressFromCentroid(p);
-    await persist();
+    // BELUM disimpan (persist) di sini — hanya tersimpan setelah tombol
+    // "Simpan" ditekan. Bila dibatalkan, discardIfPendingNew() membuangnya.
     renderAll();
-    openModal(p.id);
+    openModal(p.id, { isNew: true });
     toast("Bidang baru dibuat — lengkapi infonya", "ok");
   });
 
@@ -410,29 +477,47 @@
   }
 
   // ---------- API untuk modul GPS (gps.js) ----------
-  async function addParcelFromLatlngs(latlngs) {
+  // pointPhotos (opsional): array foto sejajar index dengan latlngs, dari
+  // tagging lapangan (satu foto per titik yang direkam GPS).
+  async function addParcelFromLatlngs(latlngs, pointPhotos) {
+    // Urutkan titik searah jarum jam, tapi jaga agar foto tetap sejajar
+    // dengan titik aslinya (sortClockwise tidak tahu soal foto).
+    let sortedLatlngs = latlngs;
+    let sortedPhotos = pointPhotos || [];
+    if (Array.isArray(pointPhotos) && pointPhotos.length === latlngs.length) {
+      const cx = latlngs.reduce((s, c) => s + c[0], 0) / latlngs.length;
+      const cy = latlngs.reduce((s, c) => s + c[1], 0) / latlngs.length;
+      const paired = latlngs.map((c, i) => ({ c, photo: pointPhotos[i] }));
+      paired.sort((a, b) => Math.atan2(b.c[0] - cx, b.c[1] - cy) - Math.atan2(a.c[0] - cx, a.c[1] - cy));
+      sortedLatlngs = paired.map((x) => x.c);
+      sortedPhotos = paired.map((x) => x.photo);
+    } else {
+      sortedLatlngs = window.Geo.sortClockwise(latlngs);
+    }
     const p = {
       id: newId(), name: "Bidang GPS",
       attributes: ATTR_KEYS.reduce((o, k) => ((o[k] = ""), o), {}),
       style: { color: "#2b8a3e", fillColor: "#69db7c", fillOpacity: 0.35 },
-      latlngs: window.Geo.sortClockwise(latlngs),
+      latlngs: sortedLatlngs,
+      pointPhotos: sortedPhotos,
     };
     parcels.push(p);
     activeId = p.id;
     // Auto-isi alamat administratif dari koordinat dulu, baru buka modal
     // (best-effort: bila offline, tetap lanjut dengan kolom kosong).
     await fillAddressFromCentroid(p);
-    await persist();
+    // BELUM disimpan — hanya setelah "Simpan" ditekan (lihat discardIfPendingNew).
     renderAll();
     map.fitBounds(p.layer.getBounds(), { padding: [60, 60] });
-    openModal(p.id);
+    openModal(p.id, { isNew: true });
   }
 
   window.GIS = {
     map, toast, addParcelFromLatlngs,
-    // Akses untuk modul jejak digital (proof-panel.js)
+    // Akses untuk modul jejak digital (proof-panel.js, visit-panel.js)
     getParcels: () => parcels,
     getActive: () => parcels.find((x) => x.id === activeId) || null,
+    persist,
     on(event, fn) { document.addEventListener(event, fn); },
   };
 
@@ -452,6 +537,16 @@
     parcels = raw.map((r) => ({
       id: r.id || newId(), name: r.name || "Bidang",
       attributes: { ...r.attributes }, style: { ...r.style }, latlngs: r.points || r.latlngs,
+      // Jejak digital & lapangan (F1-F8) — pulihkan agar tidak hilang saat reload.
+      proof: r.proof || null,
+      recordedAt: r.recordedAt || null,
+      evidence: r.evidence || [],
+      visits: r.visits || [],
+      pins: r.pins || [],
+      status: r.status || "belum",
+      reminders: r.reminders || null,
+      lastVisit: r.lastVisit || null,
+      pointPhotos: r.pointPhotos || [],
     }));
     activeId = parcels[0]?.id || null;
     renderAll();
