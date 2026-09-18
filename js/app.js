@@ -295,6 +295,8 @@
     };
     parcels.push(p);
     activeId = p.id;
+    // Auto-isi desa/kecamatan/kabupaten/provinsi dari koordinat (Nominatim)
+    await fillAddressFromCentroid(p);
     await persist();
     renderAll();
     openModal(p.id);
@@ -388,6 +390,25 @@
   // ---------- KURSOR ----------
   map.on("mousemove", (e) => { $("mouse-coord").textContent = `Lat: ${e.latlng.lat.toFixed(6)}, Lon: ${e.latlng.lng.toFixed(6)}`; });
 
+  // ---------- Auto-geocode desa/kecamatan/kabupaten/prov (Nominatim) ----------
+  async function fillAddressFromCentroid(p) {
+    if (!p || !p.latlngs || !p.latlngs.length) return;
+    const c = window.Geo.centroid(p.latlngs); // [lat, lon]
+    if (!window.GeoCode || !window.GeoCode.fetchReverse) return;
+    try {
+      const r = await window.GeoCode.fetchReverse(c[0], c[1]);
+      const a = r.address || {};
+      // Isi HANYA kolom yang masih kosong (jangan timpa data manual)
+      const setIf = (key, val) => { if (val && !p.attributes[key]) p.attributes[key] = val; };
+      setIf("desa", a.desa);
+      setIf("kecamatan", a.kecamatan);
+      setIf("kabupaten", a.kabupaten);
+      setIf("provinsi", a.provinsi);
+    } catch (e) {
+      /* offline/gagal: tetap biarkan kolom kosong, user bisa isi manual */
+    }
+  }
+
   // ---------- API untuk modul GPS (gps.js) ----------
   async function addParcelFromLatlngs(latlngs) {
     const p = {
@@ -398,6 +419,9 @@
     };
     parcels.push(p);
     activeId = p.id;
+    // Auto-isi alamat administratif dari koordinat dulu, baru buka modal
+    // (best-effort: bila offline, tetap lanjut dengan kolom kosong).
+    await fillAddressFromCentroid(p);
     await persist();
     renderAll();
     map.fitBounds(p.layer.getBounds(), { padding: [60, 60] });

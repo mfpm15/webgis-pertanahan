@@ -15,6 +15,7 @@ const SHELL_ASSETS = [
   "./index.html",
   "./css/style.css",
   "./js/geo.js",
+  "./js/geocode.js",
   "./js/storage.js",
   "./js/data.js",
   "./js/crypto.js",
