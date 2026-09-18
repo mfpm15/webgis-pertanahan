@@ -144,9 +144,13 @@
     return findOrCreateFolder(cfg("ROOT_FOLDER_NAME") || "WebGIS Pertanahan");
   }
 
-  async function getParcelFolderId(parcelId) {
+  async function getParcelFolderId(parcel) {
     const rootId = await getRootFolderId();
-    return findOrCreateFolder(parcelId, rootId);
+    // Folder name: "GB-001 - Nama Bidang" (unik & readable)
+    const parcelId = parcel.id || "unknown";
+    const parcelName = (parcel.name || "Tanah").replace(/[\\/:*?"<>|]/g, "_"); // sanitize
+    const folderName = parcelId + " - " + parcelName;
+    return findOrCreateFolder(folderName, rootId);
   }
 
   // ---------- Upload helpers ----------
@@ -181,7 +185,7 @@
   // ---------- Sync per parcel ----------
   async function syncParcel(parcel) {
     if (!parcel) throw new Error("Parcel kosong");
-    const folderId = await getParcelFolderId(parcel.id);
+    const folderId = await getParcelFolderId(parcel);
 
     // 1. data.json (semua data bidang)
     const cleanParcel = {
