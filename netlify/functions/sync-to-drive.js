@@ -5,8 +5,14 @@
  * Dipakai saat situs di-deploy ke Netlify (server.js Node biasa
  * TIDAK berjalan di Netlify — hanya situs statis + Functions).
  *
+ * Auth: OAuth refresh token milik akun Google Anda (bukan Service
+ * Account — Service Account personal TIDAK punya kuota storage
+ * sendiri di Drive, lihat scripts/get-refresh-token.js).
+ *
  * Env vars (Netlify Site Settings -> Environment Variables):
- *   GOOGLE_SERVICE_ACCOUNT_KEY   -> isi JSON service-account (1 baris)
+ *   GOOGLE_OAUTH_CLIENT_ID       -> Client ID OAuth Web Application
+ *   GOOGLE_OAUTH_CLIENT_SECRET   -> Client Secret OAuth
+ *   GOOGLE_OAUTH_REFRESH_TOKEN   -> dari scripts/get-refresh-token.js
  *   GOOGLE_DRIVE_ROOT_FOLDER_ID  -> ID folder root Drive
  * ============================================================= */
 "use strict";
@@ -17,14 +23,14 @@ let driveClient = null;
 
 function initDriveClient() {
   if (driveClient) return driveClient;
-  const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  if (!keyJson) throw new Error("GOOGLE_SERVICE_ACCOUNT_KEY belum diset di Netlify env vars");
-  const credentials = JSON.parse(keyJson);
-  const auth = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: ["https://www.googleapis.com/auth/drive"],
-  });
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET / GOOGLE_OAUTH_REFRESH_TOKEN belum diset di Netlify env vars. Jalankan scripts/get-refresh-token.js untuk mendapatkan refresh token.");
+  }
+  const auth = new google.auth.OAuth2(clientId, clientSecret);
+  auth.setCredentials({ refresh_token: refreshToken });
   driveClient = google.drive({ version: "v3", auth });
   return driveClient;
 }

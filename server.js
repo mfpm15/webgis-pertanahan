@@ -169,32 +169,30 @@ async function handleApi(req, res, urlPath) {
     return handleSyncToDrive(req, res);
   }
 
-  // ---------------- Google Drive Sync (Service Account) ----------------
+  // ---------------- Google Drive Sync (OAuth refresh token) ----------------
+  // Service Account personal TIDAK punya kuota storage Drive sendiri,
+  // jadi dipakai OAuth refresh token milik akun Google Anda.
+  // Dapatkan sekali via: node scripts/get-refresh-token.js
+  //
   // Konfigurasi via environment variables:
-  // GOOGLE_SERVICE_ACCOUNT_KEY  -> JSON string dari service-account.json
+  // GOOGLE_OAUTH_CLIENT_ID      -> Client ID OAuth Web Application
+  // GOOGLE_OAUTH_CLIENT_SECRET  -> Client Secret OAuth
+  // GOOGLE_OAUTH_REFRESH_TOKEN  -> dari scripts/get-refresh-token.js
   // GOOGLE_DRIVE_ROOT_FOLDER_ID -> ID folder root di Drive (contoh: 1jddk1kywV5DW69T_iqn2DM3qaT_BRORn)
   let driveClient = null;
   let driveRootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID || "1jddk1kywV5DW69T_iqn2DM3qaT_BRORn";
 
   function initDriveClient() {
     if (driveClient) return true;
-    const keyJson = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-    if (!keyJson) {
-      console.warn("GOOGLE_SERVICE_ACCOUNT_KEY tidak diset — Drive sync dinonaktifkan");
+    const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+    const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+    if (!clientId || !clientSecret || !refreshToken) {
+      console.warn("GOOGLE_OAUTH_CLIENT_ID / SECRET / REFRESH_TOKEN belum diset — Drive sync dinonaktifkan. Jalankan: node scripts/get-refresh-token.js");
       return false;
     }
-    let credentials;
-    try {
-      credentials = JSON.parse(keyJson);
-    } catch (e) {
-      console.error("GOOGLE_SERVICE_ACCOUNT_KEY JSON tidak valid:", e.message);
-      return false;
-    }
-    const auth = new google.auth.JWT({
-      email: credentials.client_email,
-      key: credentials.private_key,
-      scopes: ["https://www.googleapis.com/auth/drive"],
-    });
+    const auth = new google.auth.OAuth2(clientId, clientSecret);
+    auth.setCredentials({ refresh_token: refreshToken });
     driveClient = google.drive({ version: "v3", auth });
     return true;
   }
