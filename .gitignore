@@ -9,6 +9,9 @@ data/*.tmp
 _*.txt
 _payload.json
 *.log
+_served.html
+_orig_index.html
+_research/
 
 # OS / editor
 .DS_Store

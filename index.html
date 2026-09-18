@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Web GIS Pertanahan — peta bidang tanah: ukur luas & keliling, tagging GPS lapangan, simpan data lokal, ekspor GeoJSON." />
-  <meta name="theme-color" content="#e8590c" />
+  <meta name="description" content="Web GIS Pertanahan — peta bidang tanah: ukur luas & keliling, tagging GPS lapangan, simpan data lokal, ekspor GeoJSON, jejak digital anti-palsu." />
+  <meta name="theme-color" content="#0e7490" />
   <meta name="color-scheme" content="dark light" />
   <title>Web GIS Pertanahan</title>
 
@@ -23,19 +23,18 @@
       <header class="sidebar-header">
         <h1>🗺️ Web GIS Pertanahan</h1>
         <p class="subtitle">Sistem Informasi Bidang Tanah</p>
-        <span id="storage-badge" class="storage-badge" title="Mode penyimpanan">…</span>
+        <span id="storage-badge" class="storage-badge" title="Mode penyimpanan">...</span>
         <div class="header-tools">
           <button id="btn-help" class="chip" type="button" title="Panduan penggunaan">❓ Bantuan</button>
           <button id="btn-install" class="chip hidden" type="button" title="Pasang sebagai aplikasi">⬇️ Pasang App</button>
         </div>
       </header>
 
-
       <!-- Ringkasan -->
       <section class="panel summary-panel" aria-label="Ringkasan">
         <div class="summary">
           <div class="sum-card"><div class="sum-val" id="sum-count">0</div><div class="sum-lbl">Bidang</div></div>
-          <div class="sum-card"><div class="sum-val" id="sum-area">0</div><div class="sum-lbl">Total m²</div></div>
+          <div class="sum-card"><div class="sum-val" id="sum-area">0</div><div class="sum-lbl">Total m2</div></div>
           <div class="sum-card"><div class="sum-val" id="sum-ha">0</div><div class="sum-lbl">Total ha</div></div>
         </div>
       </section>
@@ -65,7 +64,7 @@
           <span id="parcel-count" class="badge">0</span>
         </div>
         <label class="sr-only" for="search">Cari bidang</label>
-        <input id="search" class="search-input" type="search" placeholder="🔎 Cari nama / pemilik / sertifikat…" />
+        <input id="search" class="search-input" type="search" placeholder="🔎 Cari nama / pemilik / sertifikat..." />
         <div id="parcel-list" class="parcel-list"></div>
         <p class="hint">Atau gunakan alat gambar (kiri atas peta) untuk menambah bidang.</p>
       </section>
@@ -78,6 +77,14 @@
         </div>
       </section>
 
+      <!-- Jejak Digital (F1-F8) -->
+      <section class="panel" aria-label="Jejak digital" id="proof-panel-wrap">
+        <h2>🔐 Jejak Digital</h2>
+        <div id="proof-panel" class="proof-panel">
+          <p class="muted" id="proof-hint">Pilih bidang untuk melihat sidik jari & bukti digital.</p>
+        </div>
+      </section>
+
       <!-- Aksi data -->
       <section class="panel" aria-label="Data">
         <h2>Data</h2>
@@ -85,10 +92,10 @@
           <button id="btn-export" class="btn btn-secondary" type="button">⬇️ Export GeoJSON</button>
           <label class="btn btn-secondary file-label">
             ⬆️ Import GeoJSON
-            <input id="file-import" type="file" accept=".geojson,.json,application/json" hidden />
+            <input id="file-import" type="file" accept=".geojson,.json,.kml,.gpx,application/json" hidden />
           </label>
           <button id="btn-reset" class="btn btn-secondary" type="button">🧪 Muat Data Contoh</button>
-
+          <button id="btn-backup" class="btn btn-secondary" type="button">💾 Backup & Kunci Bukti</button>
         </div>
       </section>
 
@@ -164,12 +171,12 @@
         </ul>
         <h4>Mengisi data</h4>
         <p>Setelah bidang dibuat, isi nama, pemilik, nomor sertifikat, dan pilih warna. Klik <b>Simpan</b>.</p>
-        <h4>Melihat ukuran</h4>
-        <p>Klik bidang di peta atau di daftar untuk melihat luas, keliling, panjang sisi, dan titik koordinat.</p>
+        <h4>Jejak digital</h4>
+        <p>Panel <b>🔐 Jejak Digital</b> menampilkan sidik jari (hash), tombol kunci bukti ke arsip publik, dan backup. Ini bukti keutuhan & waktu — <b>bukan</b> pengganti sertifikat BPN.</p>
         <h4>Menyimpan & berbagi</h4>
         <ul>
           <li>Perubahan tersimpan otomatis di perangkat.</li>
-          <li><b>Export GeoJSON</b> untuk mengunduh / berbagi, <b>Import GeoJSON</b> untuk memuat data.</li>
+          <li><b>Export GeoJSON</b> untuk mengunduh / berbagi, <b>Import</b> untuk memuat data.</li>
           <li><b>Pasang App</b> (jika muncul) agar bisa dibuka seperti aplikasi & dipakai offline.</li>
         </ul>
         <p class="note">Catatan: luas & keliling adalah perkiraan dari koordinat. Untuk urusan resmi, gunakan hasil ukur BPN.</p>
@@ -181,48 +188,26 @@
   </div>
 
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-------- REPLACE
-  <!-- ====================== MODAL BANTUAN ====================== -->
-  <div id="help-backdrop" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
-    <div class="modal">
-      <h3 id="help-title">❓ Panduan Singkat</h3>
-      <div class="help-body">
-        <p>Aplikasi ini untuk mencatat dan mengukur bidang tanah. Data tersimpan di perangkat Anda sendiri.</p>
-        <h4>Menambah bidang</h4>
-        <ul>
-          <li><b>Di kantor:</b> klik ikon gambar (▢ / ⬡) di kiri atas peta, klik tiap sudut, lalu tutup di titik awal.</li>
-          <li><b>Di lapangan:</b> tekan <b>Mulai Tagging Lapangan</b>, berjalan ke tiap sudut tanah sambil menekan <b>Rekam Titik</b>, lalu <b>Selesai</b>.</li>
-        </ul>
-        <h4>Mengisi data</h4>
-        <p>Setelah bidang dibuat, isi nama, pemilik, nomor sertifikat, dan pilih warna. Klik <b>Simpan</b>.</p>
-        <h4>Melihat ukuran</h4>
-        <p>Klik bidang di peta atau di daftar untuk melihat luas, keliling, panjang sisi, dan titik koordinat.</p>
-        <h4>Menyimpan &amp; berbagi</h4>
-        <ul>
-          <li>Perubahan tersimpan otomatis di perangkat.</li>
-          <li><b>Export GeoJSON</b> untuk mengunduh / berbagi, <b>Import GeoJSON</b> untuk memuat data.</li>
-          <li><b>Pasang App</b> (jika muncul) agar bisa dibuka seperti aplikasi &amp; dipakai offline.</li>
-        </ul>
-        <p class="note">Catatan: luas &amp; keliling adalah perkiraan dari koordinat. Untuk urusan resmi, gunakan hasil ukur BPN.</p>
-      </div>
-      <div class="modal-actions">
-        <button type="button" id="help-close" class="btn">Mengerti</button>
-      </div>
-    </div>
-  </div>
 
-  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
-
-  <!-- Libraries -->
+  <!-- Libraries (CDN, defer supaya tidak memblokir render peta) -->
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script defer src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <script defer src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script defer src="https://unpkg.com/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script defer src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <!-- App -->
   <script defer src="js/geo.js"></script>
   <script defer src="js/storage.js"></script>
   <script defer src="js/data.js"></script>
+  <script defer src="js/crypto.js"></script>
+  <script defer src="js/timestamp.js"></script>
+  <script defer src="js/evidence.js"></script>
+  <script defer src="js/field.js"></script>
+  <script defer src="js/report.js"></script>
   <script defer src="js/app.js"></script>
   <script defer src="js/gps.js"></script>
+  <script defer src="js/proof-panel.js"></script>
   <script defer src="js/ui.js"></script>
 </body>
 

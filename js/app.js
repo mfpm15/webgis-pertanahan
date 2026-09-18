@@ -215,6 +215,7 @@
     const p = parcels.find((x) => x.id === id);
     renderInfo(p);
     if (p) { p.layer.openPopup(); map.fitBounds(p.layer.getBounds(), { padding: [60, 60] }); }
+    document.dispatchEvent(new CustomEvent("gis:select", { detail: { id: id } }));
   }
 
   async function deleteParcel(id) {
@@ -403,7 +404,13 @@
     openModal(p.id);
   }
 
-  window.GIS = { map, toast, addParcelFromLatlngs };
+  window.GIS = {
+    map, toast, addParcelFromLatlngs,
+    // Akses untuk modul jejak digital (proof-panel.js)
+    getParcels: () => parcels,
+    getActive: () => parcels.find((x) => x.id === activeId) || null,
+    on(event, fn) { document.addEventListener(event, fn); },
+  };
 
 
   // ---------- INIT ----------
@@ -432,6 +439,7 @@
     // simpan awal supaya seed langsung tertulis ke file/localStorage
     await persist();
     setStatus(mode === "backend" ? "Terhubung ke backend ✓" : "Mode browser ✓");
+    document.dispatchEvent(new CustomEvent("gis:select", { detail: { id: activeId } }));
   }
 
   init();

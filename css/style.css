@@ -185,3 +185,112 @@ html, body { height: 100%; font-family: "Segoe UI", Roboto, system-ui, sans-seri
   .attr-form .form-grid { grid-template-columns: 1fr; }
   .summary { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* =============================================================
+ * PENINGKATAN UI v2 — murni CSS (tanpa @apply, aman utk static)
+ * Perbaikan: warna profesional, kontras header, tabel, footer,
+ * responsive, dan pastikan #map selalu punya tinggi.
+ * ============================================================= */
+
+/* Warna aksen lebih profesional (biru-teal) — poligon peta tetap oranye dari JS */
+:root {
+  --accent: #38bdf8;
+  --accent-strong: #0e7490;
+  --bg-sidebar: #0f172a;
+  --bg-panel: #1e293b;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border: #334155;
+}
+
+/* Header sidebar: kontras jelas, teks putih terbaca */
+.sidebar-header {
+  background: linear-gradient(135deg, #0e7490, #1e3a8a);
+  color: #fff;
+}
+.sidebar-header h1 { color: #fff; font-size: 1.15rem; }
+.sidebar-header .subtitle { color: #e2e8f0; }
+#sidebar { border-right-color: var(--accent-strong); }
+
+/* Panel lebih rapi */
+.panel { background: var(--bg-panel); }
+.panel h2 { color: var(--accent); }
+
+/* Kartu ringkasan */
+.summary { gap: 10px; }
+.sum-card {
+  background: #0f172a; border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px 8px; text-align: center;
+}
+.sum-val { font-size: 1.05rem; font-weight: 800; color: var(--accent); letter-spacing: -0.01em; }
+.sum-lbl { font-size: 0.58rem; }
+
+/* Tabel atribut: zebra + padding agar mudah dibaca */
+.attr-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.attr-table th, .attr-table td {
+  text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border);
+  vertical-align: top; font-size: 0.8rem; line-height: 1.4;
+}
+.attr-table tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+.attr-table th { color: var(--text-muted); font-weight: 600; width: 40%; }
+.attr-table td { color: var(--text); }
+
+/* Kartu stat */
+.stat-card { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.stat-card .sc-value { color: var(--accent); }
+
+/* Footer lebih bersih */
+.sidebar-footer {
+  margin-top: auto; padding: 10px 16px; font-size: 0.7rem; color: var(--text-muted);
+  font-family: Consolas, monospace; background: #0b1220; display: flex;
+  flex-direction: column; gap: 4px; border-top: 1px solid var(--border);
+}
+.save-status { color: #4ade80; font-family: inherit; font-size: 0.74rem; }
+.save-status.saving { color: var(--accent); }
+
+/* Daftar bidang lebih mudah dibaca */
+.parcel-item { border-radius: 8px; }
+.parcel-item.active { border-left-color: var(--accent); }
+
+/* Pastikan peta selalu punya dimensi (memperbaiki "map tidak muncul") */
+#map-container { flex: 1 1 auto; min-width: 0; position: relative; }
+#map { width: 100%; height: 100%; min-height: 320px; background: #0b1722; }
+@media (max-width: 768px) { #map { min-height: 260px; } }
+
+/* Tombol lebih rapi */
+.btn { border-radius: 8px; }
+
+/* Panel bukti digital (fitur F1-F8) */
+.proof-panel { background: #0f172a; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.proof-panel h3 { color: var(--accent); font-size: 0.8rem; margin-bottom: 10px; }
+.proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.proof-item { background: #1e293b; border: 1px solid var(--border); border-radius: 6px; padding: 8px; }
+.proof-item .pi-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.4px; }
+.proof-item .pi-val { font-size: 0.82rem; color: var(--text); margin-top: 3px; word-break: break-all; font-family: Consolas, monospace; }
+
+/* Toast */
+.toast { border-radius: 10px; }
+
+/* =============================================================
+ * Panel Jejak Digital (F1-F8) — tombol aksi, status, utilitas
+ * ============================================================= */
+.btn-sm {
+  padding: 6px 10px; font-size: 0.74rem; border-radius: 6px; font-weight: 600;
+  background: var(--accent-strong); color: #fff; border: none; cursor: pointer;
+}
+.btn-sm:hover { filter: brightness(1.08); }
+.btn-sm.btn-secondary {
+  background: var(--bg-panel); color: var(--text); border: 1px solid var(--border);
+}
+.btn-sm.btn-secondary:hover { background: #313f54; }
+
+.proof-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.proof-actions .btn-sm { flex: 1; min-width: 110px; }
+
+.pp-status { margin-top: 10px; font-size: 0.78rem; min-height: 1.1em; line-height: 1.4; }
+.pp-status .ok-text { color: #4ade80; }
+.pp-status .err-text { color: #f87171; }
+
+/* Utilitas status tercolor (dipakai proof-panel.js) */
+.ok-text { color: #4ade80; }
+.err-text { color: #f87171; }

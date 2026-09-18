@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Verifikasi bukti digital bidang tanah — cek keutuhan data & waktu pencatatan." />
+  <meta name="robots" content="noindex" />
+  <title>Verifikasi Bukti Digital — WebGIS Pertanahan</title>
+  <link rel="icon" href="icons/icon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/verify.css" />
+</head>
+<body class="verify-body">
+  <main class="verify-wrap">
+    <header class="verify-head">
+      <h1>🔐 Verifikasi Bukti Digital</h1>
+      <p class="muted">Halaman ini hanya menampilkan <b>sidik jari (hash)</b> — bukan isi atau koordinat bidang.</p>
+    </header>
+
+    <section class="panel verify-panel">
+      <h2>Hasil Verifikasi</h2>
+      <div id="verify-result" class="verify-result">
+        <p class="muted">Memeriksa…</p>
+      </div>
+    </section>
+
+    <section class="panel verify-panel">
+      <h2>Cek Manual</h2>
+      <p class="hint">Tempel hash yang tertera di Kartu Bukti untuk dicocokkan.</p>
+      <input id="hash-input" class="search-input" type="text" placeholder="Tempel hash SHA-256…" />
+      <div class="actions">
+        <button id="btn-compare" class="btn" type="button">Cocokkan</button>
+      </div>
+      <div id="compare-result" class="verify-result"></div>
+    </section>
+
+    <section class="panel verify-panel">
+      <h2>Cara Verifikasi Independen</h2>
+      <ol class="verify-steps">
+        <li>Minta <b>file data kanonik</b> bidang (dari pemilik/admin).</li>
+        <li>Hitung SHA-256 file itu, bandingkan dengan hash di halaman ini.</li>
+        <li>Untuk waktu: gunakan file <b>.ots</b> + alat resmi
+            <a href="https://opentimestamps.org" target="_blank" rel="noopener">OpenTimestamps</a>
+            untuk membuktikan hash tercatat di Bitcoin sebelum tanggal tertentu.</li>
+      </ol>
+      <p class="note" id="disclaimer"></p>
+    </section>
+
+    <footer class="verify-foot">
+      <a href="index.html">← Kembali ke aplikasi</a>
+    </footer>
+  </main>
+
+  <script defer src="js/crypto.js"></script>
+  <script defer src="js/verify.js"></script>
+</body>
+</html>

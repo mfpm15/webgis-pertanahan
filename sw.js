@@ -6,7 +6,7 @@
  *   - Tile peta (Google/Esri/OSM): network-first, simpan salinan
  *     supaya area yang pernah dibuka tetap muncul saat offline.
  * ============================================================= */
-const VERSION = "v3.1.0";
+const VERSION = "v5.0.0";
 const SHELL_CACHE = "gis-shell-" + VERSION;
 const TILE_CACHE = "gis-tiles-" + VERSION;
 
@@ -17,17 +17,33 @@ const SHELL_ASSETS = [
   "./js/geo.js",
   "./js/storage.js",
   "./js/data.js",
+  "./js/crypto.js",
+  "./js/timestamp.js",
+  "./js/evidence.js",
+  "./js/field.js",
+  "./js/report.js",
   "./js/app.js",
   "./js/gps.js",
+  "./js/proof-panel.js",
   "./js/ui.js",
+  "./verify.html",
   "./icons/icon.svg",
   "./manifest.webmanifest",
 ];
 
 self.addEventListener("install", (event) => {
+  // Pra-prefetch shell utk offline, lalu aktifkan SW baru segera.
   event.waitUntil(
-    caches.open(SHELL_CACHE).then((c) => c.addAll(SHELL_ASSETS)).then(() => self.skipWaiting())
+    caches.open(SHELL_CACHE)
+      .then((c) => c.addAll(SHELL_ASSETS))
+      .catch(() => { /* offline-prefetch boleh gagal */ })
+      .then(() => self.skipWaiting())
   );
+});
+
+// Terima SKIP_WAITING agar SW baru langsung diambil alih tanpa reload manual.
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -67,17 +83,28 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // cache-first untuk app shell + lib CDN
+  // network-first untuk app shell + lib CDN: online selalu ambil terbaru,
+  // cache hanya jadi fallback saat offline. Ini menghilangkan bug
+  // "layar lama karena cache" pada update CSS/JS.
+  const isHtml = req.headers.get("accept") && req.headers.get("accept").includes("text/html");
   event.respondWith(
-    caches.match(req).then((cached) => {
-      if (cached) return cached;
-      return fetch(req).then((res) => {
+    fetch(req)
+      .then((res) => {
         if (res && res.status === 200 && (res.type === "basic" || res.type === "cors")) {
           const copy = res.clone();
-          caches.open(SHELL_CACHE).then((c) => c.put(req, copy));
+          // html tidak di-cache permanen (agar selalu segar); aset lain di-cache utk offline
+          if (!isHtml) caches.open(SHELL_CACHE).then((c) => c.put(req, copy));
         }
         return res;
-      });
-    })
+      })
+      .catch(() =>
+        caches.match(req).then(
+          (cached) =>
+            cached ||
+            (isHtml
+              ? caches.match("./index.html").then((r) => r || Response.error())
+              : Response.error())
+        )
+      )
   );
 });

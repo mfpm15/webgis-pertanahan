@@ -107,7 +107,19 @@ function serveStatic(req, res, urlPath) {
       return res.end("404 Not Found");
     }
     const ext = path.extname(filePath).toLowerCase();
-    res.writeHead(200, { "Content-Type": MIME[ext] || "application/octet-stream" });
+    const headers = { "Content-Type": MIME[ext] || "application/octet-stream" };
+    // Service worker WAJIB selalu segar agar update app cepat sampai
+    // (sama seperti konfigurasi Netlify). Tanpa ini browser meng-cache
+    // sw.js lama dan CSS/JS lama ikut persist.
+    if (rel === "/sw.js" || rel.endsWith("/sw.js")) {
+      headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+      headers["Pragma"] = "no-cache";
+    }
+    // Halaman utama & manifest selalu segar (aset statis lainnya boleh di-cache)
+    if (rel === "/" || rel === "/index.html" || rel.endsWith(".webmanifest")) {
+      headers["Cache-Control"] = "no-cache";
+    }
+    res.writeHead(200, headers);
     res.end(buf);
   });
 }
