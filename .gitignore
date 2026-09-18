@@ -19,6 +19,11 @@ client_secret_*.json
 gen-lang-client-*.json
 *service-account*.json
 *service_account*.json
+client_secret_*.json
+oauth-debug.log
+oauth-debug-copy.txt
+oauth-result.txt
+scripts/run-oauth.bat
 
 # OS / editor
 .DS_Store

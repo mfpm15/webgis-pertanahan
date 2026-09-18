@@ -15,13 +15,26 @@
 "use strict";
 
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 const { google } = require("googleapis");
 const { URL } = require("url");
 
+const LOG_FILE = path.join(__dirname, "..", "oauth-debug.log");
+function log(msg) {
+  const line = "[" + new Date().toISOString() + "] " + msg;
+  console.log(line);
+  fs.appendFileSync(LOG_FILE, line + "\n");
+}
+fs.writeFileSync(LOG_FILE, ""); // reset tiap run
+
 // Isi CLIENT_ID & CLIENT_SECRET Anda di sini, atau set via env var
 // sebelum menjalankan script (lebih aman, tidak tertulis di file).
-const CLIENT_ID = process.env.OAUTH_CLIENT_ID || "742688666266-ss5bvf0v34pepucpjhb1dkg0m26f6c0s.apps.googleusercontent.com";
-const CLIENT_SECRET = process.env.OAUTH_CLIENT_SECRET || ""; // WAJIB diisi (jangan commit ke git)
+// .trim() penting: `set VAR=xxx && command` di cmd.exe Windows sering
+// menyertakan spasi trailing ke dalam nilai variabel, membuat Google
+// menolaknya sebagai "invalid_client" walau secret aslinya benar.
+const CLIENT_ID = (process.env.OAUTH_CLIENT_ID || "742688666266-ss5bvf0v34pepucpjhb1dkg0m26f6c0s.apps.googleusercontent.com").trim();
+const CLIENT_SECRET = (process.env.OAUTH_CLIENT_SECRET || "").trim(); // WAJIB diisi (jangan commit ke git)
 // PENTING: redirect URI harus PERSIS sama dengan yang terdaftar di Google
 // Cloud Console (Authorized redirect URIs). Untuk client ini terdaftar
 // "http://localhost:3000" TANPA path tambahan -> pakai port 3000, tanpa
@@ -36,6 +49,11 @@ if (!CLIENT_SECRET) {
   console.error('  $env:OAUTH_CLIENT_SECRET="isi-client-secret-anda"; node scripts/get-refresh-token.js\n');
   process.exit(1);
 }
+
+// Debug: pastikan nilai yang benar-benar dipakai (secret disensor sebagian)
+console.log("DEBUG CLIENT_ID    :", CLIENT_ID);
+console.log("DEBUG CLIENT_SECRET:", CLIENT_SECRET.slice(0, 10) + "..." + CLIENT_SECRET.slice(-4), "(length=" + CLIENT_SECRET.length + ")");
+console.log("DEBUG REDIRECT_URI :", REDIRECT_URI);
 
 const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
@@ -69,37 +87,32 @@ const server = http.createServer(async (req, res) => {
     }
     const { tokens } = await oAuth2Client.getToken(code);
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end("<h2>Berhasil! Kembali ke terminal untuk melihat refresh token Anda.</h2><p>Boleh tutup tab ini.</p>");
+    res.end("<h2>Berhasil! Refresh token tersimpan di file oauth-result.txt</h2><p>Boleh tutup tab ini.</p>");
 
-    console.log("\n=================================================================");
-    console.log("BERHASIL. Refresh Token Anda (SIMPAN AMAN, jangan share):\n");
-    console.log(tokens.refresh_token);
-    console.log("\n=================================================================");
-    console.log("Langkah selanjutnya:");
-    console.log("1. Buka Netlify -> Site Settings -> Environment Variables");
-    console.log("2. Tambah variable baru:");
-    console.log("   Key   : GOOGLE_OAUTH_REFRESH_TOKEN");
-    console.log("   Value : (paste refresh token di atas)");
-    console.log("3. Tambah juga (jika belum ada):");
-    console.log("   Key   : GOOGLE_OAUTH_CLIENT_ID");
-    console.log("   Value : " + CLIENT_ID);
-    console.log("   Key   : GOOGLE_OAUTH_CLIENT_SECRET");
-    console.log("   Value : (client secret Anda)");
-    console.log("4. Trigger deploy ulang di Netlify");
-    console.log("=================================================================\n");
+    const resultFile = path.join(__dirname, "..", "oauth-result.txt");
+    fs.writeFileSync(resultFile,
+      "REFRESH_TOKEN=" + tokens.refresh_token + "\n" +
+      "CLIENT_ID=" + CLIENT_ID + "\n" +
+      "ACCESS_TOKEN_SAMPLE=" + (tokens.access_token || "").slice(0, 20) + "...\n"
+    );
+    log("BERHASIL — refresh token ditulis ke " + resultFile);
 
     setTimeout(() => { server.close(); process.exit(0); }, 1000);
   } catch (e) {
-    console.error("\n=== DETAIL ERROR LENGKAP ===");
-    console.error("message:", e.message);
+    log("=== DETAIL ERROR LENGKAP ===");
+    log("message: " + e.message);
     if (e.response && e.response.data) {
-      console.error("response.data:", JSON.stringify(e.response.data, null, 2));
+      log("response.data: " + JSON.stringify(e.response.data, null, 2));
     }
-    if (e.code) console.error("code:", e.code);
-    console.error("============================\n");
-    res.writeHead(500);
-    res.end("Gagal: " + e.message);
-    process.exit(1);
+    if (e.response && e.response.status) {
+      log("response.status: " + e.response.status);
+    }
+    if (e.code) log("code: " + e.code);
+    log("stack: " + e.stack);
+    log("============================");
+    res.writeHead(500, { "Content-Type": "text/plain" });
+    res.end("Gagal: " + e.message + "\n\nCek file oauth-debug.log untuk detail.");
+    setTimeout(() => process.exit(1), 500);
   }
 });
 
