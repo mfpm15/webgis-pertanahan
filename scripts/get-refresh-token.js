@@ -22,8 +22,13 @@ const { URL } = require("url");
 // sebelum menjalankan script (lebih aman, tidak tertulis di file).
 const CLIENT_ID = process.env.OAUTH_CLIENT_ID || "742688666266-ss5bvf0v34pepucpjhb1dkg0m26f6c0s.apps.googleusercontent.com";
 const CLIENT_SECRET = process.env.OAUTH_CLIENT_SECRET || ""; // WAJIB diisi (jangan commit ke git)
-const REDIRECT_URI = "http://localhost:8765/oauth2callback";
-const PORT = 8765;
+// PENTING: redirect URI harus PERSIS sama dengan yang terdaftar di Google
+// Cloud Console (Authorized redirect URIs). Untuk client ini terdaftar
+// "http://localhost:3000" TANPA path tambahan -> pakai port 3000, tanpa
+// path /oauth2callback. Pastikan server.js (node server.js) TIDAK sedang
+// berjalan di port 3000 saat menjalankan script ini.
+const REDIRECT_URI = "http://localhost:3000";
+const PORT = 3000;
 
 if (!CLIENT_SECRET) {
   console.error("\nERROR: CLIENT_SECRET belum diisi.");
@@ -50,12 +55,13 @@ console.log("=================================================================\n
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://localhost:${PORT}`);
-    if (url.pathname !== "/oauth2callback") {
-      res.writeHead(404);
-      res.end("Not found");
+    const code = url.searchParams.get("code");
+    if (!code) {
+      // request lain (favicon.ico dll) -> abaikan diam-diam
+      res.writeHead(204);
+      res.end();
       return;
     }
-    const code = url.searchParams.get("code");
     if (!code) {
       res.writeHead(400);
       res.end("Kode otorisasi tidak ditemukan di URL");
@@ -84,7 +90,13 @@ const server = http.createServer(async (req, res) => {
 
     setTimeout(() => { server.close(); process.exit(0); }, 1000);
   } catch (e) {
-    console.error("Gagal tukar kode dengan token:", e.message);
+    console.error("\n=== DETAIL ERROR LENGKAP ===");
+    console.error("message:", e.message);
+    if (e.response && e.response.data) {
+      console.error("response.data:", JSON.stringify(e.response.data, null, 2));
+    }
+    if (e.code) console.error("code:", e.code);
+    console.error("============================\n");
     res.writeHead(500);
     res.end("Gagal: " + e.message);
     process.exit(1);
