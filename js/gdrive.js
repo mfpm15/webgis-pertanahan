@@ -40,12 +40,31 @@
         resolve();
         return;
       }
+      let done = false;
+      const finish = (fn, val) => {
+        if (done) return;
+        done = true;
+        fn(val);
+      };
+      // Timeout 10 dtk: script GIS bisa lambat/terblokir (adblocker/CSP) —
+      // jangan biarkan proses boot macet di "Memuat status..." selamanya.
+      const timer = setTimeout(
+        () => finish(reject, new Error("Load Google Identity Services timeout")),
+        10000
+      );
       const script = document.createElement("script");
       script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
       script.defer = true;
-      script.onload = () => { gisLoaded = true; resolve(); };
-      script.onerror = () => reject(new Error("Gagal memuat Google Identity Services"));
+      script.onload = () => {
+        clearTimeout(timer);
+        gisLoaded = true;
+        finish(resolve);
+      };
+      script.onerror = () => {
+        clearTimeout(timer);
+        finish(reject, new Error("Gagal memuat Google Identity Services"));
+      };
       document.head.appendChild(script);
     });
   }
@@ -342,11 +361,12 @@
   // ---------- Auto-init saat halaman termuat (pola sama dgn modul panel lain) ----------
   function boot() {
     bindUI(); // pasang event listener semua tombol panel
+    // Tampilkan status segera (jangan macet di "Memuat status..." menunggu GIS).
+    updateUI();
     init().catch((e) => {
-      // GIS gagal termuat (mis. offline) — status jangan macet di "Memuat status..."
+      // GIS gagal/timeout (mis. offline/terblokir) — jalur Server Sync tetap jalan.
       console.warn("GDrive init:", e && e.message ? e.message : e);
-      const st = $("#gdrive-status");
-      if (st) st.textContent = "Sinkron via server tetap tersedia — klik \u201cSinkronkan via Server\u201d (tanpa login)";
+      updateUI();
     });
   }
   if (document.readyState === "loading") {
