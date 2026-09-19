@@ -18,6 +18,25 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "geolocation=(self)"
 
+# HTML entry-point HARUS selalu fresh: no-store memaksa semua layer (browser,
+# CDN, service worker) tidak pernah menyajikan salinan lama. Ini memutus masalah
+# "index.html versi lama masih di-cache" saat update. (JS/CSS tetap di-revalidate
+# terpisah di bawah agar update pun sampai.)
+[[headers]]
+for = "/"
+[headers.values]
+  Cache-Control = "no-store, no-cache, must-revalidate"
+
+[[headers]]
+for = "/index.html"
+[headers.values]
+  Cache-Control = "no-store, no-cache, must-revalidate"
+
+[[headers]]
+for = "/verify.html"
+[headers.values]
+  Cache-Control = "no-store, no-cache, must-revalidate"
+
 [[headers]]
 for = "/css/*"
 [headers.values]

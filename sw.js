@@ -6,7 +6,7 @@
  *   - Tile peta (Google/Esri/OSM): network-first, simpan salinan
  *     supaya area yang pernah dibuka tetap muncul saat offline.
  * ============================================================= */
-const VERSION = "v5.7.0";
+const VERSION = "v5.8.0";
 const SHELL_CACHE = "gis-shell-" + VERSION;
 const TILE_CACHE = "gis-tiles-" + VERSION;
 
@@ -73,6 +73,39 @@ self.addEventListener("fetch", (event) => {
 
   // Jangan campuri API backend (selalu butuh data terbaru).
   if (req.url.includes("/api/")) return;
+
+  // Navigasi (halaman utama / index.html / verify.html) SELALU ambil fresh
+  // dari network — JANGAN pernah sajikan HTML lama dari cache. Ini memutus
+  // masalah "SW lama menyajikan index.html versi lama" saat update.
+  // Cache HTML hanya dipakai saat truly offline (network gagal).
+  const mode = req.mode;
+  const url = new URL(req.url);
+  const isNavigation =
+    mode === "navigate" ||
+    url.pathname === "/" ||
+    url.pathname === "/index.html" ||
+    url.pathname === "/verify.html";
+  if (isNavigation) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            // simpan utk offline, tapi selalunya kita fetch ulang
+            const copy = res.clone();
+            caches.open(SHELL_CACHE).then((c) => c.put(req, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(req).then(
+            (c) =>
+              c ||
+              caches.match("/index.html").then((r) => r || Response.error())
+          )
+        )
+    );
+    return;
+  }
 
   if (isTile(req.url)) {
     // network-first untuk tile
