@@ -19,14 +19,16 @@
     Permissions-Policy = "geolocation=(self)"
 
 [[headers]]
-  for = "/css/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+for = "/css/*"
+[headers.values]
+  # Jangan immutable 1 tahun: update aplikasi tidak sampai ke pengguna.
+  # Caching offline ditangani service worker, HTTP hanya revalidate.
+  Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
-  for = "/js/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+for = "/js/*"
+[headers.values]
+  Cache-Control = "public, max-age=0, must-revalidate"
 
 # Service worker harus selalu segar agar update aplikasi cepat sampai ke pengguna
 [[headers]]

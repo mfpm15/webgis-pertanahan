@@ -12,9 +12,29 @@
   // ---------- Service Worker ----------
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch((e) => {
-        console.warn("SW gagal didaftarkan:", e);
-      });
+      navigator.serviceWorker
+        .register("sw.js")
+        .then((reg) => {
+          // Jika SW baru terinstall tetapi masih ada controller lama,
+          // kirim SKIP_WAITING lalu reload agar cache baru langsung dipakai.
+          reg.addEventListener("updatefound", () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener("statechange", () => {
+              if (
+                newWorker.state === "installed" &&
+                navigator.serviceWorker.controller // ada controller lama
+              ) {
+                newWorker.postMessage("SKIP_WAITING");
+                // Tunda reload 100 ms agar SW activate selesai
+                setTimeout(() => location.reload(), 150);
+              }
+            });
+          });
+        })
+        .catch((e) => {
+          console.warn("SW gagal didaftarkan:", e);
+        });
     });
   }
 
