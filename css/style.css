@@ -343,3 +343,7 @@ background: #16202e; color: var(--text-muted);
 .gdrive-status.err { color: #f87171; border: 1px solid #b02a37; }
 .gdrive-status.info { color: #7dd3fc; border: 1px solid #0e7490; }
 .gdrive-status.disconnected { color: var(--text-muted); }
+.gdrive-versionbar { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 0.7rem; color: var(--text-muted); }
+#gdrive-appversion { font-family: monospace; }
+.btn-xs { padding: 3px 8px; font-size: 0.72rem; border-radius: 5px; cursor: pointer; background: #1e293b; color: #e2e8f0; border: 1px solid var(--border); }
+.btn-xs:hover { background: #334155; }

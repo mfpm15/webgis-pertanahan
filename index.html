@@ -116,65 +116,111 @@
         <h2>☁️ Google Drive</h2>
         <div id="gdrive-panel">
           <div class="gdrive-status" id="gdrive-status">Sinkronkan via Server → Drive Anda (tanpa login)</div>
+          <div class="gdrive-versionbar">
+            <span id="gdrive-appversion" title="Versi aplikasi yang sedang termuat">—</span>
+            <button id="gdrive-refresh-cache" class="btn btn-xs" type="button" title="Paksa memuat ulang versi terbaru (hapus cache)">⟳ Perbarui Cache</button>
+          </div>
           <script>
-            // Handler "Sinkronkan via Server" DI-PERBAWAH DI SINI (inline) supaya
-            // selalu berfungsi walau gdrive.js versi lama masih di-cache service
-            // worker. gdrive.js sengaja tidak lagi bind tombol ini (hindari duplikat).
+            // Handler "Sinkronkan via Server" + offline-queue + tombol Perbarui Cache,
+            // DI-INLINE-kan supaya selalu berfungsi walau gdrive.js versi lama masih
+            // di-cache service worker. gdrive.js sengaja tak lagi bind tombol sync ini.
             (function () {
+              var APP_VERSION = "v5.9"; // bump setiap release (sejajar versi sw.js)
+              var PENDING_KEY = "gis_pending_sync";
+
               function setStatus(msg, tone) {
                 var st = document.getElementById("gdrive-status");
                 if (!st) return;
                 st.textContent = msg;
                 st.className = "gdrive-status" + (tone ? " " + tone : "");
               }
+              function getParcels() {
+                return (window.GIS && window.GIS.getParcels) ? (window.GIS.getParcels() || []) : [];
+              }
+              function isOnline() { return (navigator.onLine !== false); }
+              function markPending(v) { try { if (v) localStorage.setItem(PENDING_KEY, "1"); else localStorage.removeItem(PENDING_KEY); } catch (e) {} }
+              function hasPending() { try { return localStorage.getItem(PENDING_KEY) === "1"; } catch (e) { return false; } }
 
-              // 1) Teks status siap (tanpa tunggu gdrive.js)
-              document.addEventListener("DOMContentLoaded", function () {
-                var st = document.getElementById("gdrive-status");
-                if (st && st.textContent.indexOf("Sinkronkan via Server") !== -1 &&
-                    st.textContent.indexOf("berhasil") === -1 &&
-                    st.textContent.indexOf("Terhubung") === -1) {
-                  st.textContent = "Siap — klik \u2601\uFE0F Sinkronkan via Server untuk kirim data ke Drive Anda";
+              // Sinkron semua bidang via server + antrean offline otomatis.
+              function runServerSync() {
+                var parcels = getParcels();
+                if (!parcels.length) {
+                  setStatus("Belum ada bidang. Tambah dulu (poligon / GPS / muat contoh), lalu sync.", "err");
+                  return;
                 }
-              });
-
-              // 2) Handler server sync, self-contained
-              function bindServerSync() {
+                if (!isOnline()) {
+                  // Offline (lapangan): data tetap aman di memori lokal. Tandai utk
+                  // auto-kirim saat jaringan pulih — tak perlu login, tak hilang.
+                  markPending(true);
+                  setStatus("OFFLINE — data aman tersimpan. Otomatis terkirim ke Drive saat ada sinyal.", "info");
+                  return;
+                }
                 var btn = document.getElementById("gdrive-sync-server");
-                if (!btn || btn.getAttribute("data-bound") === "1") return;
-                btn.setAttribute("data-bound", "1");
-                btn.addEventListener("click", function () {
-                  var getParcels = (window.GIS && window.GIS.getParcels) ? window.GIS.getParcels : null;
-                  var parcels = getParcels ? getParcels() : [];
-                  if (!parcels || !parcels.length) {
-                    setStatus("Belum ada bidang. Tambah bidang dulu (gambar poligon / GPS / muat contoh), lalu sync.", "err");
+                if (btn) btn.disabled = true;
+                var total = parcels.length, ok = 0, fail = 0;
+                setStatus("Mengirim " + total + " bidang ke Drive via server...", "info");
+                (function step(i) {
+                  if (i >= total) {
+                    if (btn) btn.disabled = false;
+                    if (fail === 0) { markPending(false); setStatus("Selesai: " + ok + " bidang terkirim ke Drive Anda \u2713", "ok"); }
+                    else { markPending(true); setStatus("Selesai: " + ok + " ok, " + fail + " gagal — auto-retry saat online.", "err"); }
                     return;
                   }
-                  btn.disabled = true;
-                  var total = parcels.length, ok = 0, fail = 0;
-                  setStatus("Mengirim " + total + " bidang ke Drive via server...", "info");
-                  (function step(i) {
-                    if (i >= total) {
-                      btn.disabled = false;
-                      setStatus("Selesai: " + ok + " berhasil, " + fail + " gagal \u2192 Drive Anda.", fail ? "err" : "ok");
-                      return;
-                    }
-                    var p = parcels[i];
-                    setStatus("Sync " + (p.name || p.id) + " (" + (i + 1) + "/" + total + ") via server...", "info");
-                    fetch("/api/sync-to-drive", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ parcelId: p.id, parcel: p, files: [] })
-                    }).then(function (res) { return res.json(); }).then(function (data) {
-                      if (data && data.ok) ok++; else fail++;
-                    }).catch(function () { fail++; }).then(function () { step(i + 1); });
-                  })(0);
-                });
+                  var p = parcels[i];
+                  setStatus("Sync " + (p.name || p.id) + " (" + (i + 1) + "/" + total + ")...", "info");
+                  fetch("/api/sync-to-drive", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ parcelId: p.id, parcel: p, files: [] })
+                  }).then(function (res) { return res.json(); }).then(function (data) {
+                    if (data && data.ok) ok++; else fail++;
+                  }).catch(function () { fail++; }).then(function () { step(i + 1); });
+                })(0);
               }
+
+              function bind() {
+                var vb = document.getElementById("gdrive-appversion");
+                if (vb) vb.textContent = APP_VERSION + " (termuat)";
+
+                var btn = document.getElementById("gdrive-sync-server");
+                if (btn && btn.getAttribute("data-bound") !== "1") {
+                  btn.setAttribute("data-bound", "1");
+                  btn.addEventListener("click", runServerSync);
+                }
+
+                // Tombol "Perbarui Cache": daftarkan ulang SW + hapus cache + reload,
+                // memutus cycle service worker yang menyajikan HTML versi lama.
+                var rf = document.getElementById("gdrive-refresh-cache");
+                if (rf) {
+                  rf.addEventListener("click", function () {
+                    if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+                      navigator.serviceWorker.getRegistrations().then(function (regs) {
+                        regs.forEach(function (r) { r.unregister(); });
+                      });
+                    }
+                    if (window.caches && caches.keys) {
+                      caches.keys().then(function (names) {
+                        names.forEach(function (n) { if (n !== "gis-tiles-" + APP_VERSION.replace("v", "")) caches.delete(n); });
+                      });
+                    }
+                    setTimeout(function () { location.href = location.pathname + "?cb=" + Date.now(); }, 150);
+                  });
+                }
+
+                // Auto-sync saat kembali online (lapangan: offline → sinyal datang).
+                window.addEventListener("online", function () {
+                  if (hasPending()) { setStatus("Kembali online — kirim antrean ke Drive...", "info"); setTimeout(runServerSync, 800); }
+                });
+                // Saat load: jika ada yang tertunda & online, kirim otomatis.
+                if (isOnline() && hasPending()) {
+                  setTimeout(runServerSync, 1500);
+                }
+              }
+
               if (document.readyState === "loading") {
-                document.addEventListener("DOMContentLoaded", bindServerSync);
+                document.addEventListener("DOMContentLoaded", bind);
               } else {
-                bindServerSync();
+                bind();
               }
             })();
           </script>
