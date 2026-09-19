@@ -105,7 +105,8 @@ html, body { height: 100%; font-family: "Segoe UI", Roboto, system-ui, sans-seri
 
 /* MODAL */
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 16px; }
-.modal-backdrop.hidden { display: none; }
+/* Rule generik: elemen manapun yang diberi class "hidden" langsung tersembunyi */
+.hidden { display: none !important; }
 .modal { background: var(--bg-sidebar); border: 1px solid var(--accent-strong); border-radius: 10px; padding: 20px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.5); }
 .modal h3 { color: var(--accent); margin-bottom: 14px; font-size: 1.05rem; }
 .attr-form .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
