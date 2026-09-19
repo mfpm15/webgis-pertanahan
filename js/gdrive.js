@@ -306,7 +306,13 @@
     if (btnIn) btnIn.addEventListener("click", signIn);
     if (btnOut) btnOut.addEventListener("click", signOut);
     if (btnSync) btnSync.addEventListener("click", syncAll);
-    if (btnSyncServer) btnSyncServer.addEventListener("click", syncAllViaServer);
+    // Tombol "Sinkronkan via Server" di-bind oleh INLINE SCRIPT di index.html
+    // (selalu berjalan walau gdrive.js ini masih ter-cache versi lama).
+    // Di sini HANYA di-update kalau tombol belum di-bind inline (rare path:
+    // misalnya gdrive.js termuat tapi inline script gagal).
+    if (btnSyncServer && btnSyncServer.getAttribute("data-bound") !== "1") {
+      btnSyncServer.addEventListener("click", syncAllViaServer);
+    }
   }
 
   async function syncAllViaServer() {

@@ -6,31 +6,31 @@
  *   - Tile peta (Google/Esri/OSM): network-first, simpan salinan
  *     supaya area yang pernah dibuka tetap muncul saat offline.
  * ============================================================= */
-const VERSION = "v5.8.0";
+const VERSION = "v5.9.0";
 const SHELL_CACHE = "gis-shell-" + VERSION;
 const TILE_CACHE = "gis-tiles-" + VERSION;
 
 const SHELL_ASSETS = [
   "./",
   "./index.html",
-  "./css/style.css?v=57",
-  "./js/geo.js?v=57",
-  "./js/geocode.js?v=57",
-  "./js/storage.js?v=57",
-  "./js/data.js?v=57",
-  "./js/crypto.js?v=57",
-  "./js/timestamp.js?v=57",
-  "./js/evidence.js?v=57",
-  "./js/field.js?v=57",
-  "./js/report.js?v=57",
-  "./js/photo.js?v=57",
-  "./js/gdrive-config.js?v=57",
-  "./js/app.js?v=57",
-  "./js/gps.js?v=57",
-  "./js/proof-panel.js?v=57",
-  "./js/visit-panel.js?v=57",
-  "./js/gdrive.js?v=57",
-  "./js/ui.js?v=57",
+  "./css/style.css?v=58",
+  "./js/geo.js?v=58",
+  "./js/geocode.js?v=58",
+  "./js/storage.js?v=58",
+  "./js/data.js?v=58",
+  "./js/crypto.js?v=58",
+  "./js/timestamp.js?v=58",
+  "./js/evidence.js?v=58",
+  "./js/field.js?v=58",
+  "./js/report.js?v=58",
+  "./js/photo.js?v=58",
+  "./js/gdrive-config.js?v=58",
+  "./js/app.js?v=58",
+  "./js/gps.js?v=58",
+  "./js/proof-panel.js?v=58",
+  "./js/visit-panel.js?v=58",
+  "./js/gdrive.js?v=58",
+  "./js/ui.js?v=58",
   "./verify.html",
   "./icons/icon.svg",
   "./manifest.webmanifest",
