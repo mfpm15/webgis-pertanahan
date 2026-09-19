@@ -338,4 +338,20 @@
     syncAll, syncParcel,
     getRootFolderId, getParcelFolderId,
   };
+
+  // ---------- Auto-init saat halaman termuat (pola sama dgn modul panel lain) ----------
+  function boot() {
+    bindUI(); // pasang event listener semua tombol panel
+    init().catch((e) => {
+      // GIS gagal termuat (mis. offline) — status jangan macet di "Memuat status..."
+      console.warn("GDrive init:", e && e.message ? e.message : e);
+      const st = $("#gdrive-status");
+      if (st) st.textContent = "Sinkron via server tetap tersedia — klik \u201cSinkronkan via Server\u201d (tanpa login)";
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
 })();
