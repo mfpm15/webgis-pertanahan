@@ -115,7 +115,27 @@
       <section class="panel" aria-label="Google Drive Sync" id="gdrive-panel-wrap">
         <h2>☁️ Google Drive</h2>
         <div id="gdrive-panel">
-          <div class="gdrive-status" id="gdrive-status">Memuat status...</div>
+          <div class="gdrive-status" id="gdrive-status">Sinkronkan via Server → Drive Anda (tanpa login)</div>
+          <script>
+            // Inline: langsung update status saat HTML di-parse (tanpa tunggu JS eksternal).
+            // Jika gdrive.js gagal load (cache/CDN/network), status TIDAK macet.
+            document.addEventListener("DOMContentLoaded", function() {
+              var st = document.getElementById("gdrive-status");
+              if (!st) return;
+              var text = st.textContent;
+              // Jika teks masih default (bukan yang di-set oleh gdrive.js), beri info yang berguna
+              if (text.indexOf("Sinkronkan via Server") !== -1 && text.indexOf("berhasil") === -1 && text.indexOf("gagal") === -1 && text.indexOf("Terhubung") === -1) {
+                st.textContent = "Siap — klik \u2601\uFE0F Sinkronkan via Server untuk kirim data ke Drive Anda";
+              }
+            });
+            // Fallback: jika dalam 5 detik status belum berubah, set teks jelas
+            setTimeout(function() {
+              var st = document.getElementById("gdrive-status");
+              if (st && st.textContent.indexOf("Sinkronkan via Server") !== -1 && st.textContent.indexOf("berhasil") === -1 && st.textContent.indexOf("Terhubung") === -1) {
+                st.textContent = "Siap \u2014 klik \u2601\uFE0F Sinkronkan via Server untuk kirim data ke Drive Anda";
+              }
+            }, 5000);
+          </script>
           <div class="proof-actions">
             <button id="gdrive-signin" class="btn btn-sm" type="button">🔐 Masuk ke Drive</button>
             <button id="gdrive-signout" class="btn btn-sm btn-secondary hidden" type="button">🚪 Keluar</button>
