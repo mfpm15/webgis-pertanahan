@@ -18,6 +18,12 @@
   let mode = "local"; // "backend" | "local"
 
   async function detectBackend() {
+    // Di Netlify (hosting statis) tidak ada backend Node — langsung local,
+    // tanpa fetch /api/health (menghindari 404 di console).
+    if (location.hostname.indexOf("netlify.app") !== -1) {
+      mode = "local";
+      return false;
+    }
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 1500);

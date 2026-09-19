@@ -6,31 +6,31 @@
  *   - Tile peta (Google/Esri/OSM): network-first, simpan salinan
  *     supaya area yang pernah dibuka tetap muncul saat offline.
  * ============================================================= */
-const VERSION = "v5.9.0";
+const VERSION = "v6.0.0";
 const SHELL_CACHE = "gis-shell-" + VERSION;
 const TILE_CACHE = "gis-tiles-" + VERSION;
 
 const SHELL_ASSETS = [
   "./",
   "./index.html",
-  "./css/style.css?v=58",
-  "./js/geo.js?v=58",
-  "./js/geocode.js?v=58",
-  "./js/storage.js?v=58",
-  "./js/data.js?v=58",
-  "./js/crypto.js?v=58",
-  "./js/timestamp.js?v=58",
-  "./js/evidence.js?v=58",
-  "./js/field.js?v=58",
-  "./js/report.js?v=58",
-  "./js/photo.js?v=58",
-  "./js/gdrive-config.js?v=58",
-  "./js/app.js?v=58",
-  "./js/gps.js?v=58",
-  "./js/proof-panel.js?v=58",
-  "./js/visit-panel.js?v=58",
-  "./js/gdrive.js?v=58",
-  "./js/ui.js?v=58",
+  "./css/style.css?v=59",
+  "./js/geo.js?v=59",
+  "./js/geocode.js?v=59",
+  "./js/storage.js?v=59",
+  "./js/data.js?v=59",
+  "./js/crypto.js?v=59",
+  "./js/timestamp.js?v=59",
+  "./js/evidence.js?v=59",
+  "./js/field.js?v=59",
+  "./js/report.js?v=59",
+  "./js/photo.js?v=59",
+  "./js/gdrive-config.js?v=59",
+  "./js/app.js?v=59",
+  "./js/gps.js?v=59",
+  "./js/proof-panel.js?v=59",
+  "./js/visit-panel.js?v=59",
+  "./js/gdrive.js?v=59",
+  "./js/ui.js?v=59",
   "./verify.html",
   "./icons/icon.svg",
   "./manifest.webmanifest",
@@ -70,6 +70,12 @@ function isTile(url) {
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;
+
+  // ABAI request non-http(s) (mis. chrome-extension://, data:, file:).
+  // caches.put() crash jika scheme tidak didukung.
+  let scheme;
+  try { scheme = new URL(req.url).protocol; } catch (e) { return; }
+  if (scheme !== "https:" && scheme !== "http:") return;
 
   // Jangan campuri API backend (selalu butuh data terbaru).
   if (req.url.includes("/api/")) return;

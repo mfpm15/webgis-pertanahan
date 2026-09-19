@@ -284,14 +284,20 @@
     const btnSyncServer = $("#gdrive-sync-server");
     const status = $("#gdrive-status");
     const signed = isSignedIn();
-    if (btnIn) btnIn.classList.toggle("hidden", signed);
-    if (btnOut) btnOut.classList.toggle("hidden", !signed);
-    if (btnSync) btnSync.classList.toggle("hidden", !signed);
+    // Jalur OAuth per-device HANYA aktif jika CLIENT_ID terisi. Tanpa itu,
+    // sembunyikan tombol "Masuk ke Drive" dst agar tak membingungkan —
+    // jalur utama = "Sinkronkan via Server" (tanpa login).
+    const oauthOn = !!cfg("CLIENT_ID");
+    if (btnIn) btnIn.classList.toggle("hidden", !oauthOn || signed);
+    if (btnOut) btnOut.classList.toggle("hidden", !oauthOn || !signed);
+    if (btnSync) btnSync.classList.toggle("hidden", !oauthOn || !signed);
     // Tombol server sync selalu tampil (tidak butuh login)
     if (btnSyncServer) btnSyncServer.classList.remove("hidden");
     if (status) {
       if (signed) {
-        status.textContent = "Terhubung ke Google Drive (Client OAuth) ✓ — atau gunakan Server Sync di bawah";
+        status.textContent = "Terhubung ke Google Drive (Client OAuth) ✓";
+      } else if (!oauthOn) {
+        status.textContent = "Sinkronkan via Server \u2192 Drive Anda (tanpa login). Klik \u2601\uFE0F di bawah.";
       } else {
         status.textContent = "Belum login OAuth. Gunakan ☁️ Sinkronkan via Server (otomatis ke Drive Anda)";
       }
