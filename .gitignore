@@ -13,8 +13,9 @@ _served.html
 _orig_index.html
 _research/
 
-# Google Drive config (credential, jangan commit)
-js/gdrive-config.js
+# Credential Google Drive (jangan commit)
+# (js/gdrive-config.js versi aman SUDAH di-commit: CLIENT_ID kosong,
+#  jalur utama = Server Sync via refresh token di Netlify env vars)
 client_secret_*.json
 gen-lang-client-*.json
 *service-account*.json

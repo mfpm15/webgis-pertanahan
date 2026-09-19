@@ -12,8 +12,10 @@
   // ---------- Service Worker ----------
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
+      // ?v=57 cache-busting: ubah angka ini setiap release agar SW file
+      // selalu direvalidasi (memutus siklus "SW lama masih jadi controller").
       navigator.serviceWorker
-        .register("sw.js")
+        .register("sw.js?v=57")
         .then((reg) => {
           // Jika SW baru terinstall tetapi masih ada controller lama,
           // kirim SKIP_WAITING lalu reload agar cache baru langsung dipakai.
