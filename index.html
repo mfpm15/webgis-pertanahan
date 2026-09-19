@@ -14,7 +14,7 @@
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-  <link rel="stylesheet" href="css/style.css?v=59" />
+  <link rel="stylesheet" href="css/style.css?v=60" />
 </head>
 <body>
   <div id="app">
@@ -125,7 +125,7 @@
             // DI-INLINE-kan supaya selalu berfungsi walau gdrive.js versi lama masih
             // di-cache service worker. gdrive.js sengaja tak lagi bind tombol sync ini.
             (function () {
-              var APP_VERSION = "v6.0"; // bump setiap release (sejajar versi sw.js)
+              var APP_VERSION = "v6.1"; // bump setiap release (sejajar versi sw.js)
               var PENDING_KEY = "gis_pending_sync";
 
               function setStatus(msg, tone) {
@@ -335,29 +335,29 @@
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script defer src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script defer src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script defer src="https://unpkg.com/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
   <script defer src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 
   <!-- App -->
   <!-- ?v= cache-busting: ubah angka ini setiap release agar semua layer
        cache (browser / CDN edge / service worker) pasti memuat versi baru -->
-  <script defer src="js/geo.js?v=59"></script>
-  <script defer src="js/geocode.js?v=59"></script>
-  <script defer src="js/storage.js?v=59"></script>
-  <script defer src="js/data.js?v=59"></script>
-  <script defer src="js/crypto.js?v=59"></script>
-  <script defer src="js/timestamp.js?v=59"></script>
-  <script defer src="js/evidence.js?v=59"></script>
-  <script defer src="js/field.js?v=59"></script>
-  <script defer src="js/report.js?v=59"></script>
-  <script defer src="js/photo.js?v=59"></script>
-  <script defer src="js/gdrive-config.js?v=59"></script>
-  <script defer src="js/app.js?v=59"></script>
-  <script defer src="js/gps.js?v=59"></script>
-  <script defer src="js/proof-panel.js?v=59"></script>
-  <script defer src="js/visit-panel.js?v=59"></script>
-  <script defer src="js/gdrive.js?v=59"></script>
-  <script defer src="js/ui.js?v=59"></script>
+  <script defer src="js/geo.js?v=60"></script>
+  <script defer src="js/geocode.js?v=60"></script>
+  <script defer src="js/storage.js?v=60"></script>
+  <script defer src="js/data.js?v=60"></script>
+  <script defer src="js/crypto.js?v=60"></script>
+  <script defer src="js/timestamp.js?v=60"></script>
+  <script defer src="js/evidence.js?v=60"></script>
+  <script defer src="js/field.js?v=60"></script>
+  <script defer src="js/report.js?v=60"></script>
+  <script defer src="js/photo.js?v=60"></script>
+  <script defer src="js/gdrive-config.js?v=60"></script>
+  <script defer src="js/app.js?v=60"></script>
+  <script defer src="js/gps.js?v=60"></script>
+  <script defer src="js/proof-panel.js?v=60"></script>
+  <script defer src="js/visit-panel.js?v=60"></script>
+  <script defer src="js/gdrive.js?v=60"></script>
+  <script defer src="js/ui.js?v=60"></script>
 </body>
 
 </html>

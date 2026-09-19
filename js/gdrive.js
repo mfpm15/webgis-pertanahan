@@ -97,8 +97,13 @@
 
   // ---------- Public API ----------
   async function init() {
-    await loadGIS();
-    initTokenClient();
+    // Jalur OAuth per-device (GIS) HANYA di-load jika CLIENT_ID terisi.
+    // Tanpa itu, skip loadGIS → tidak fetch script Google yang tak terpakai
+    // dan tidak ada console.warn "CLIENT_ID belum di-set".
+    if (cfg("CLIENT_ID")) {
+      try { await loadGIS(); } catch (e) { console.warn("GIS load gagal:", e.message); }
+      initTokenClient();
+    }
     updateUI();
   }
 
